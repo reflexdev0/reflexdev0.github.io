@@ -81,11 +81,12 @@
   nav a{transition:color .2s; white-space:nowrap;}
   nav a:hover, nav a.active{color:var(--text);}
   .category-select{
-    background:rgba(255,255,255,0.06); border:1px solid var(--line); color:var(--text);
-    font-family:'Inter',sans-serif; font-size:13px; padding:7px 12px; border-radius:100px;
-    cursor:pointer; outline:none; flex-shrink:0;
+    background:rgba(255,255,255,0.06) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23a8a5a6' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 14px center;
+    border:1px solid var(--line); color:var(--text);
+    font-family:'Inter',sans-serif; font-size:13px; padding:7px 30px 7px 16px; border-radius:100px;
+    cursor:pointer; outline:none; flex-shrink:0; appearance:none; -webkit-appearance:none;
   }
-  .category-select:hover{ background:rgba(255,255,255,0.1); }
+  .category-select:hover{ background-color:rgba(255,255,255,0.1); }
   .search-wrap{
     margin-left:auto;
     position:relative;
@@ -355,6 +356,17 @@
     font-size:12px; letter-spacing:0.04em; position:relative; z-index:1;
   }
   @media (max-width:640px){ .site-footer{ padding-bottom:76px; } }
+  .back-to-top{
+    position:fixed; right:24px; bottom:24px; z-index:90;
+    width:44px; height:44px; border-radius:50%; border:1px solid var(--line);
+    background:rgba(20,20,22,0.85); backdrop-filter:blur(6px); color:var(--text);
+    font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    opacity:0; pointer-events:none; transform:translateY(10px);
+    transition:opacity .25s, transform .25s;
+  }
+  .back-to-top.show{ opacity:1; pointer-events:auto; transform:translateY(0); }
+  .back-to-top:hover{ background:var(--red); border-color:var(--red); }
+  @media (max-width:640px){ .back-to-top{ bottom:76px; right:16px; } }
   .maintenance-overlay{
     position:fixed; inset:0; z-index:1000; background:var(--bg);
     display:flex; align-items:center; justify-content:center; padding:24px;
@@ -436,9 +448,10 @@
     scroll-behavior:smooth;
     padding:44px 46px 24px;
     scrollbar-width:none;
+    scroll-snap-type:x proximity;
   }
   .row-scroll::-webkit-scrollbar{ display:none; }
-  .row-scroll .card, .row-scroll .skeleton{ flex:0 0 168px; }
+  .row-scroll .card, .row-scroll .skeleton{ flex:0 0 168px; scroll-snap-align:start; }
   .slide-arrow{
     position:absolute; top:0; bottom:14px; width:46px; z-index:8;
     display:flex; align-items:center; justify-content:center;
@@ -926,6 +939,7 @@
     <button class="btn btn-primary" id="confirmOkBtn">Confirm</button>
   </div>
 </div>
+<button id="backToTop" class="back-to-top" aria-label="Back to top">↑</button>
 <footer class="site-footer">©reflexdev</footer>
 <div class="trailer-modal" id="trailerModal">
   <button class="theater-close" id="trailerClose" aria-label="Close trailer">✕</button>
@@ -2530,6 +2544,8 @@ document.addEventListener('click', (e)=>{
 const KIDS_HIDDEN_CATEGORIES = ['Horror'];
 
 
+const NAV_GENRE_SET = new Set(['Action','Sci-Fi','Drama','Thriller','Crime','Comedy','Animation','Horror','Fantasy']);
+
 function buildNav(){
   const navEl = document.getElementById('navLinks');
   const selectEl = document.getElementById('categorySelect');
@@ -2543,11 +2559,16 @@ function buildNav(){
     openCategoryFull('all');
   });
 
-  // Everything else lives in a plain native <select> -- the browser handles
-  // all the opening/closing/positioning itself, nothing custom to break.
+  // Everything else lives in a plain native <select>, organized into native
+  // <optgroup> labels -- still zero custom positioning/open-close JS, the
+  // browser renders the grouping entirely on its own.
   const restItems = navItems.filter(([cat]) => cat !== 'all');
+  const genreItems = restItems.filter(([cat]) => NAV_GENRE_SET.has(cat));
+  const collectionItems = restItems.filter(([cat]) => !NAV_GENRE_SET.has(cat));
+  const opt = ([cat,label]) => `<option value="${cat}">${label}</option>`;
   selectEl.innerHTML = `<option value="" selected disabled>Browse category…</option>` +
-    restItems.map(([cat,label]) => `<option value="${cat}">${label}</option>`).join('');
+    (genreItems.length ? `<optgroup label="Genres">${genreItems.map(opt).join('')}</optgroup>` : '') +
+    (collectionItems.length ? `<optgroup label="Collections">${collectionItems.map(opt).join('')}</optgroup>` : '');
   selectEl.onchange = ()=>{
     if(!selectEl.value) return;
     navEl.querySelector('a').classList.remove('active');
@@ -3201,6 +3222,12 @@ window.addEventListener('online', updateOfflineBanner);
 window.addEventListener('offline', updateOfflineBanner);
 updateOfflineBanner();
 loadAnnouncement();
+
+const backToTopBtn = document.getElementById('backToTop');
+window.addEventListener('scroll', ()=>{
+  backToTopBtn.classList.toggle('show', window.scrollY > 600);
+});
+backToTopBtn.onclick = ()=> window.scrollTo({ top:0, behavior:'smooth' });
 
 function showGateError(msg){ document.getElementById('gateError').textContent = msg || ''; }
 
