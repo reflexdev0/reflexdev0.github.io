@@ -425,7 +425,7 @@
   /* ---------- Mobile browse sheet ---------- */
   .mobile-browse-trigger{ display:none; }
   @media (max-width:640px){
-    .nav-dropdown{ display:none; }
+    .desktop-browse-dropdown{ display:none; }
     .mobile-browse-trigger{ display:inline-flex; align-items:center; gap:4px; }
   }
   .mobile-browse-sheet .side-menu-body{ padding-top:16px; }
@@ -923,6 +923,9 @@
     .hero-plot{font-size:12.5px; line-height:1.4; margin-bottom:12px; -webkit-line-clamp:1;}
     .hero-actions{gap:8px;}
     .hero-actions .btn{padding:9px 14px; font-size:12.5px;}
+    .theater-toolbar{ justify-content:center; gap:8px 10px; padding:14px 16px; }
+    .toolbar-label{ display:none; }
+    .toolbar-group{ gap:0; }
     .hero-dots{margin-top:10px;}
     .theater{padding:0;}
     .theater-panel{max-height:100vh; border-radius:0; height:100%;}
@@ -970,7 +973,7 @@
     <button class="type-btn" data-type="series">Series</button>
   </div>
   <nav id="navLinks"></nav>
-  <div class="nav-dropdown">
+  <div class="nav-dropdown desktop-browse-dropdown">
     <button class="nav-dropdown-btn" id="browseDropdownBtn">Browse <span>&#9662;</span></button>
     <div class="nav-dropdown-panel" id="browseDropdownPanel"></div>
   </div>
