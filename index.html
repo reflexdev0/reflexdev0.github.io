@@ -188,7 +188,7 @@
     border:1px solid var(--line);
     color:var(--text);
     font-family:'Inter',sans-serif;
-    font-size:13.5px;
+    font-size:16px;
     padding:9px 14px 9px 34px;
     border-radius:100px;
     outline:none;
@@ -281,7 +281,7 @@
   .menu-section-title.divider{padding-top:22px; margin-top:22px; border-top:1px solid rgba(255,255,255,0.1);}
   .auth-input{
     width:100%; box-sizing:border-box; background:rgba(255,255,255,0.06); border:1px solid var(--line);
-    color:var(--text); font-family:'Inter',sans-serif; font-size:13.5px; padding:10px 12px;
+    color:var(--text); font-family:'Inter',sans-serif; font-size:16px; padding:10px 12px;
     border-radius:8px; margin-bottom:8px; outline:none;
   }
   .auth-input:focus{border-color:var(--red);}
@@ -421,6 +421,32 @@
     .bottom-nav{display:flex;}
     body{padding-bottom:60px;}
   }
+
+  /* ---------- Mobile browse sheet ---------- */
+  .mobile-browse-trigger{ display:none; }
+  @media (max-width:640px){
+    .nav-dropdown{ display:none; }
+    .mobile-browse-trigger{ display:inline-flex; align-items:center; gap:4px; }
+  }
+  .mobile-browse-sheet .side-menu-body{ padding-top:16px; }
+  .type-pill-row{ display:flex; gap:8px; margin-bottom:24px; }
+  .type-pill{
+    flex:1; text-align:center; padding:10px; border-radius:100px; font-size:13px; font-weight:700;
+    border:none; cursor:pointer; background:rgba(255,255,255,0.06); color:var(--muted);
+  }
+  .type-pill.active{ background:var(--red); color:#fff; }
+  .browse-section{ margin-bottom:24px; }
+  .browse-section-title{
+    font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted);
+    font-weight:700; margin:0 0 12px;
+  }
+  .chip-grid{ display:flex; flex-wrap:wrap; gap:10px; }
+  .chip{
+    padding:10px 18px; border-radius:100px; background:rgba(255,255,255,0.05); border:1px solid var(--line);
+    font-size:13.5px; font-weight:600; color:var(--text); cursor:pointer;
+  }
+  .chip.decade{ background:none; color:var(--muted); }
+  .chip.special{ background:rgba(var(--red-rgb),0.1); border-color:rgba(var(--red-rgb),0.35); color:var(--red-light); }
 
   /* ---------- Hero ---------- */
   .hero{
@@ -799,7 +825,7 @@
   .toolbar-group select, .toolbar-group input{
     background:rgba(255,255,255,0.07); color:var(--text);
     border:1px solid var(--line); border-radius:6px;
-    font-family:'Inter',sans-serif; font-size:13px; padding:6px 10px;
+    font-family:'Inter',sans-serif; font-size:16px; padding:6px 10px;
     outline:none; cursor:pointer;
   }
   .toolbar-group input[type=number]{width:60px; cursor:text;}
@@ -948,6 +974,7 @@
     <button class="nav-dropdown-btn" id="browseDropdownBtn">Browse <span>&#9662;</span></button>
     <div class="nav-dropdown-panel" id="browseDropdownPanel"></div>
   </div>
+  <button class="see-all-btn mobile-browse-trigger" id="mobileBrowseTrigger">Browse <span style="font-size:10px;">&#9662;</span></button>
   <div class="search-wrap">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
     <input id="searchInput" type="text" placeholder="Search titles…" autocomplete="off" />
@@ -1167,6 +1194,22 @@
     <button class="theater-close" id="seasonPanelClose" aria-label="Close season list">✕</button>
   </div>
   <div class="side-menu-body" id="seasonListBody"></div>
+</aside>
+
+<div class="menu-overlay" id="mobileBrowseOverlay"></div>
+<aside class="side-menu mobile-browse-sheet" id="mobileBrowseSheet">
+  <div class="drag-handle" id="mobileBrowseDragHandle"><span></span></div>
+  <div class="side-menu-head">
+    <span>Browse</span>
+    <button class="theater-close" id="mobileBrowseClose" aria-label="Close browse">✕</button>
+  </div>
+  <div class="side-menu-body">
+    <div class="type-pill-row">
+      <button class="type-pill active" id="mobileBrowseTypeMovie">Movies</button>
+      <button class="type-pill" id="mobileBrowseTypeSeries">Series</button>
+    </div>
+    <div id="mobileBrowseSections"></div>
+  </div>
 </aside>
 
 <section class="hero" id="hero">
@@ -1911,7 +1954,7 @@ const METADATA_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 // changed) -- this invalidates any previously-cached metadata that predates
 // the change, rather than silently serving an incomplete stale copy missing
 // the new field until the 24h TTL happens to expire on its own.
-const METADATA_SCHEMA_VERSION = 2; // v2: added OriginalLanguage
+const METADATA_SCHEMA_VERSION = 3; // v3: TMDB ID overrides for One Piece / Ikebukuro West Gate Park
 
 function getPersistedMeta(id){
   const entry = storage.get('meta:' + id, null);
@@ -1954,16 +1997,32 @@ function enforceMetaCacheCap(){
 // than needing to be filtered at each individual call site.
 let hiddenTitleIds = new Set();
 
+// For a small number of titles that have both a live-action and an anime
+// version (or similarly confusable variants), TMDB's community-edited
+// external-ID linking has been found to resolve to the wrong one. Rather
+// than trust the normal imdb_id lookup for these specific titles, the
+// correct TMDB id (verified directly against TMDB's own listing) is used
+// instead, bypassing that lookup entirely just for these known cases.
+const TMDB_ID_OVERRIDES = {
+  'tt0388629': { tmdbId: 37854, type: 'series' }, // One Piece -- the 1999 anime, not the 2023 Netflix live-action adaptation
+  'tt0331389': { tmdbId: 4939, type: 'series' },  // Ikebukuro West Gate Park -- the 2000 live-action drama, not the 2020 anime
+};
+
 async function fetchById(id, bypassHiddenCheck){
   if(hiddenTitleIds.has(id) && !bypassHiddenCheck) return null;
   if(cache[id]) return cache[id];
   const persisted = getPersistedMeta(id);
   if(persisted){ cache[id] = persisted; indexActors(persisted); return persisted; }
   try{
-    const found = await tmdbFetch(`/find/${id}?external_source=imdb_id`);
     let media = null, type = null;
-    if(found.movie_results && found.movie_results.length){ media = found.movie_results[0]; type = 'movie'; }
-    else if(found.tv_results && found.tv_results.length){ media = found.tv_results[0]; type = 'series'; }
+    if(TMDB_ID_OVERRIDES[id]){
+      media = { id: TMDB_ID_OVERRIDES[id].tmdbId };
+      type = TMDB_ID_OVERRIDES[id].type;
+    }else{
+      const found = await tmdbFetch(`/find/${id}?external_source=imdb_id`);
+      if(found.movie_results && found.movie_results.length){ media = found.movie_results[0]; type = 'movie'; }
+      else if(found.tv_results && found.tv_results.length){ media = found.tv_results[0]; type = 'series'; }
+    }
     if(!media){ lastError = 'Not found on TMDB'; return null; }
     const details = await tmdbFetch(`/${type === 'movie' ? 'movie' : 'tv'}/${media.id}?append_to_response=credits,videos,recommendations`);
     const adapted = adaptTmdb(details, type, id);
@@ -3632,6 +3691,64 @@ document.addEventListener('click', (e)=>{
   if(!browseDropdown.contains(e.target)) closeBrowseDropdown();
 });
 
+/* ---------------- Mobile browse sheet ---------------- */
+const mobileBrowseOverlay = document.getElementById('mobileBrowseOverlay');
+const mobileBrowseSheet = document.getElementById('mobileBrowseSheet');
+function openMobileBrowse(){
+  renderMobileBrowseSheet();
+  mobileBrowseOverlay.classList.add('open');
+  mobileBrowseSheet.classList.add('open');
+}
+function closeMobileBrowse(){
+  mobileBrowseOverlay.classList.remove('open');
+  mobileBrowseSheet.classList.remove('open');
+}
+document.getElementById('mobileBrowseTrigger').onclick = openMobileBrowse;
+document.getElementById('mobileBrowseClose').onclick = closeMobileBrowse;
+document.getElementById('mobileBrowseDragHandle').onclick = closeMobileBrowse;
+mobileBrowseOverlay.onclick = closeMobileBrowse;
+
+const DECADE_PATTERN = /^\d{4}s$/;
+function renderMobileBrowseSheet(){
+  document.getElementById('mobileBrowseTypeMovie').classList.toggle('active', contentType === 'movie');
+  document.getElementById('mobileBrowseTypeSeries').classList.toggle('active', contentType === 'series');
+
+  const items = NAV[contentType].filter(([cat]) => cat !== 'all');
+  const kidsMode = !!getCurrentProfile().kidsMode;
+  const visible = items.filter(([cat]) => !(kidsMode && KIDS_HIDDEN_CATEGORIES.includes(cat)));
+  const genreIds = TMDB_GENRE_IDS[contentType] || {};
+  const genres = visible.filter(([cat]) => genreIds[cat]);
+  const decades = visible.filter(([cat]) => DECADE_PATTERN.test(cat));
+  const special = visible.filter(([cat]) => !genreIds[cat] && !DECADE_PATTERN.test(cat));
+
+  const section = (title, list, chipClass) => !list.length ? '' : `
+    <div class="browse-section">
+      <p class="browse-section-title">${title}</p>
+      <div class="chip-grid">
+        ${list.map(([cat,label]) => `<button class="chip ${chipClass||''}" data-cat="${cat}">${label}</button>`).join('')}
+      </div>
+    </div>`;
+
+  document.getElementById('mobileBrowseSections').innerHTML =
+    section('Genres', genres) + section('Decades', decades, 'decade') + section('Special', special, 'special');
+
+  document.querySelectorAll('#mobileBrowseSections .chip').forEach(chip=>{
+    chip.onclick = ()=>{
+      closeMobileBrowse();
+      document.querySelectorAll('#navLinks a').forEach(a=>a.classList.remove('active'));
+      openCategoryFull(chip.dataset.cat);
+    };
+  });
+}
+function switchMobileBrowseType(type){
+  if(contentType === type) return;
+  const targetBtn = document.querySelector(`.type-btn[data-type="${type}"]`);
+  if(targetBtn) targetBtn.click(); // reuses the exact same switch logic already wired to the main toggle
+  renderMobileBrowseSheet();
+}
+document.getElementById('mobileBrowseTypeMovie').onclick = ()=> switchMobileBrowseType('movie');
+document.getElementById('mobileBrowseTypeSeries').onclick = ()=> switchMobileBrowseType('series');
+
 function isKidsSafe(m){
   if(!getCurrentProfile().kidsMode) return true;
   const genre = (m.Genre || '').toLowerCase();
@@ -4702,7 +4819,9 @@ backToTopBtn.onclick = ()=> window.scrollTo({ top:0, behavior:'smooth' });
   const THRESHOLD = 80;
 
   document.addEventListener('touchstart', (e)=>{
-    if(window.scrollY <= 0){
+    const activeTag = document.activeElement && document.activeElement.tagName;
+    const isTyping = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT';
+    if(window.scrollY <= 0 && !isTyping){
       startY = e.touches[0].clientY;
       pulling = true;
       triggered = false;
