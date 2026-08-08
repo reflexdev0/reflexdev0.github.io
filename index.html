@@ -4505,14 +4505,29 @@ async function loadAdminPanel(){
         const u = d.data();
         const label = u.displayName ? `${escapeHtml(u.displayName)} <span style="color:var(--muted);">(${escapeHtml(u.email)})</span>` : (escapeHtml(u.email) || d.id);
         const isAdmin = u.email === ADMIN_EMAIL;
-        return `<div class="admin-list-row"><span>${label}</span><span style="display:flex; gap:10px;">
+        const devices = u.devices || [];
+        const deviceCountColor = devices.length >= 4 ? 'var(--red-light)' : 'var(--muted)'; // flags accounts nearing the 5-device limit
+        const deviceBadge = isAdmin ? '' : `<button class="settings-link-btn device-toggle" style="color:${deviceCountColor};" data-uid="${d.id}">${devices.length}/5 devices</button>`;
+        const deviceListHtml = devices.length ? devices.map(dev => `
+          <div class="admin-list-row" style="padding-left:16px; font-size:11px;">
+            <span>${escapeHtml(dev.label)} -- last used ${new Date(dev.lastSeen).toLocaleDateString()}</span>
+          </div>`).join('') : `<p class="admin-list-empty" style="padding-left:16px;">No devices on record yet.</p>`;
+        return `<div class="admin-list-row"><span>${label}</span><span style="display:flex; gap:10px; align-items:center;">
+          ${deviceBadge}
           <button class="settings-link-btn" style="color:var(--muted);" data-uid="${d.id}" data-action="reset">Reset data</button>
           ${isAdmin ? '' : `<button class="settings-link-btn" data-uid="${d.id}" data-action="delete">Delete</button>`}
-        </span></div>`;
+        </span></div>
+        <div class="device-detail" id="deviceDetail_${d.id}" style="display:none;">${deviceListHtml}</div>`;
       }).join('') : `<p class="admin-list-empty">No approved users yet.</p>`}
     `;
 
     userList.innerHTML = pendingHtml + approvedHtml;
+    userList.querySelectorAll('.device-toggle').forEach(btn=>{
+      btn.onclick = ()=>{
+        const detail = document.getElementById('deviceDetail_' + btn.dataset.uid);
+        if(detail) detail.style.display = detail.style.display === 'none' ? 'block' : 'none';
+      };
+    });
 
     userList.querySelectorAll('[data-action="accept"]').forEach(btn=>{
       btn.onclick = async ()=>{
