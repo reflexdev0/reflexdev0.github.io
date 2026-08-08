@@ -161,20 +161,45 @@
   .nav-dropdown:hover .nav-dropdown-btn, .nav-dropdown.open .nav-dropdown-btn{color:var(--text);}
   .nav-dropdown-panel{
     position:absolute; top:calc(100% + 14px); left:0; z-index:70;
-    background:var(--surface-2); border:1px solid var(--line); border-radius:10px;
-    padding:16px; display:none; box-shadow:0 16px 34px rgba(0,0,0,0.55);
-    grid-template-columns:1fr 1fr; gap:24px; min-width:340px;
+    background:var(--surface-2); border:1px solid var(--line); border-radius:12px;
+    padding:18px; display:none; box-shadow:0 16px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(var(--red-rgb),0.08), 0 0 30px -8px rgba(var(--red-rgb),0.35);
+    grid-template-columns:1.3fr 1fr; gap:26px; min-width:400px;
   }
   .nav-dropdown.open .nav-dropdown-panel{display:grid;}
-  .nav-dropdown-panel.single{ min-width:160px; }
+  .nav-dropdown-panel.single{ min-width:260px; }
   .nav-dropdown.open .nav-dropdown-panel.single{display:flex; flex-direction:column; gap:2px;}
-  .nav-col-title{font-size:10.5px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); font-weight:700; margin-bottom:10px;}
+  .nav-col-title{font-size:10.5px; letter-spacing:0.1em; text-transform:uppercase; color:var(--red-light); font-weight:700; margin-bottom:12px;}
   .nav-dropdown-panel a, .nav-dropdown-panel button{
     display:block; font-size:13px; color:var(--text); padding:6px 4px; background:none; border:none;
     text-align:left; cursor:pointer; width:100%; border-radius:6px; transition:background .15s;
   }
   .nav-dropdown-panel a:hover, .nav-dropdown-panel button:hover{background:rgba(255,255,255,0.06);}
   .nav-dropdown-panel button.active{color:var(--red-light); font-weight:600;}
+  .nav-genre-chips{ display:flex; flex-wrap:wrap; gap:8px; }
+  .nav-genre-chip{
+    background:rgba(255,255,255,0.05); border:1px solid var(--line); border-radius:100px;
+    padding:6px 13px; font-size:12.5px; color:var(--text); cursor:pointer; transition:all .15s; width:auto;
+  }
+  .nav-genre-chip:hover{ background:rgba(var(--red-rgb),0.14); border-color:rgba(var(--red-rgb),0.5); color:var(--red-light); }
+  .nav-special-link{ display:flex; align-items:center; gap:8px; }
+  .nav-special-tag{ font-size:9px; background:rgba(var(--red-rgb),0.15); color:var(--red-light); padding:1px 6px; border-radius:100px; margin-left:auto; font-weight:700; letter-spacing:0.03em; }
+  .nav-decade-row{ display:flex; gap:6px; margin-top:14px; padding-top:14px; border-top:1px solid var(--line); }
+  .nav-decade-chip{
+    flex:1; text-align:center; background:none; border:1px solid var(--line); border-radius:8px;
+    padding:6px 4px; font-size:11.5px; color:var(--muted); cursor:pointer; transition:all .15s;
+  }
+  .nav-decade-chip:hover{ border-color:var(--red-light); color:var(--red-light); }
+  .server-row{
+    display:flex; align-items:center; gap:10px; padding:10px !important; border-radius:8px !important;
+    cursor:pointer;
+  }
+  .server-row:hover{ background:rgba(255,255,255,0.05); }
+  .server-row.active{ background:rgba(var(--red-rgb),0.1); }
+  .server-radio{ width:16px; height:16px; border-radius:50%; border:2px solid var(--line); flex-shrink:0; }
+  .server-row.active .server-radio{ border-color:var(--red); background:var(--red); }
+  .server-row-info{ text-align:left; }
+  .server-row-info .name{ font-size:13.5px; font-weight:700; color:var(--text); }
+  .server-row-info .sub{ font-size:11px; color:var(--muted); margin-top:1px; }
   .search-wrap{
     margin-left:auto;
     position:relative;
@@ -1623,10 +1648,13 @@ async function tryEmbedUrl(ids, season, episode, mode, title){
 }
 
 const SERVERS = [
-  { name: 'Videasy',         movie:(ids)=>`https://player.videasy.to/movie/${ids.tmdb}`,
+  { name: 'Videasy',         desc:'Works for everything -- start here',
+                             movie:(ids)=>`https://player.videasy.to/movie/${ids.tmdb}`,
                              tv:(ids,s,e)=>`https://player.videasy.to/tv/${ids.tmdb}/${s}/${e}`, unsandboxed:true },
-  { name: 'TryEmbed (Sub)',  movie:(ids,title)=> tryEmbedUrl(ids,1,1,'sub',title), tv:(ids,s,e,title)=> tryEmbedUrl(ids,s,e,'sub',title), animeOnly:true, noSandbox:true },
-  { name: 'TryEmbed (Dub)',  movie:(ids,title)=> tryEmbedUrl(ids,1,1,'dub',title), tv:(ids,s,e,title)=> tryEmbedUrl(ids,s,e,'dub',title), animeOnly:true, noSandbox:true },
+  { name: 'TryEmbed (Sub)',  desc:'Anime only -- subtitled',
+                             movie:(ids,title)=> tryEmbedUrl(ids,1,1,'sub',title), tv:(ids,s,e,title)=> tryEmbedUrl(ids,s,e,'sub',title), animeOnly:true, noSandbox:true },
+  { name: 'TryEmbed (Dub)',  desc:'Anime only -- English dub',
+                             movie:(ids,title)=> tryEmbedUrl(ids,1,1,'dub',title), tv:(ids,s,e,title)=> tryEmbedUrl(ids,s,e,'dub',title), animeOnly:true, noSandbox:true },
 ];
 
 /* ---------------- Curated catalogs ---------------- */
@@ -3050,8 +3078,11 @@ const episodeInput = document.getElementById('episodeInput');
 let currentServerIndex = 0;
 
 function renderServerDropdown(visibleServers){
-  serverDropdownPanel.innerHTML = visibleServers.map(({s,i}) =>
-    `<button type="button" data-index="${i}" class="${i===currentServerIndex?'active':''}">${s.name}</button>`
+  serverDropdownPanel.innerHTML = visibleServers.map(({s,i}) => `
+    <button type="button" class="server-row ${i===currentServerIndex?'active':''}" data-index="${i}">
+      <span class="server-radio"></span>
+      <span class="server-row-info"><span class="name" style="display:block;">${s.name}</span><span class="sub" style="display:block;">${s.desc||''}</span></span>
+    </button>`
   ).join('');
   const current = SERVERS[currentServerIndex];
   serverDropdownBtn.innerHTML = `${current ? current.name : 'Select'} <span>&#9662;</span>`;
@@ -3660,25 +3691,39 @@ function buildNav(){
     openMyListFull();
   });
 
-  // Everything else lives in the two-column Browse dropdown panel.
+  // Everything else lives in the enhanced Browse dropdown panel: genres as
+  // chips, decades as their own quick-pick row, everything else (Star Wars,
+  // Anime, etc.) as a "More" list. Uses the same content-type-aware genre
+  // detection as the mobile sheet -- the old hardcoded genre set here only
+  // recognized movie genre names, so it would have silently miscategorized
+  // every series genre (Action & Adventure, etc.) as "More" instead.
   const restItems = navItems.filter(([cat]) => cat !== 'all');
-  const genreItems = restItems.filter(([cat]) => NAV_GENRE_SET.has(cat));
-  const browseItems = restItems.filter(([cat]) => !NAV_GENRE_SET.has(cat));
+  const genreIds = TMDB_GENRE_IDS[contentType] || {};
+  const genreItems = restItems.filter(([cat]) => genreIds[cat]);
+  const decadeItems = restItems.filter(([cat]) => DECADE_PATTERN.test(cat));
+  const moreItems = restItems.filter(([cat]) => !genreIds[cat] && !DECADE_PATTERN.test(cat));
   const panel = document.getElementById('browseDropdownPanel');
-  const col = (title, items) => `
+  const SPECIAL_TAGS = { 'Star Wars':'SAGA', 'Anime':'LIVE', 'K-Drama & Anime Series':'LIVE' };
+  panel.innerHTML = `
     <div>
-      <div class="nav-col-title">${title}</div>
-      ${items.map(([cat,label])=>`<a href="#" data-cat="${cat}">${label}</a>`).join('')}
+      <div class="nav-col-title">Genres</div>
+      <div class="nav-genre-chips">
+        ${genreItems.map(([cat,label])=>`<button class="nav-genre-chip" data-cat="${cat}">${label}</button>`).join('')}
+      </div>
+      ${decadeItems.length ? `<div class="nav-decade-row">${decadeItems.map(([cat,label])=>`<button class="nav-decade-chip" data-cat="${cat}">${label}</button>`).join('')}</div>` : ''}
+    </div>
+    <div>
+      <div class="nav-col-title">More</div>
+      ${moreItems.map(([cat,label])=>`
+        <button class="nav-special-link" data-cat="${cat}">${label}${SPECIAL_TAGS[cat] ? `<span class="nav-special-tag">${SPECIAL_TAGS[cat]}</span>` : ''}</button>
+      `).join('')}
     </div>`;
-  panel.innerHTML = genreItems.length
-    ? col('Browse', browseItems) + col('Genres', genreItems)
-    : col('Browse', browseItems);
-  panel.querySelectorAll('a').forEach(link=>{
-    link.addEventListener('click', (e)=>{
+  panel.querySelectorAll('[data-cat]').forEach(el=>{
+    el.addEventListener('click', (e)=>{
       e.preventDefault();
       navEl.querySelectorAll('a').forEach(a=>a.classList.remove('active'));
       closeBrowseDropdown();
-      openCategoryFull(link.dataset.cat);
+      openCategoryFull(el.dataset.cat);
     });
   });
 }
