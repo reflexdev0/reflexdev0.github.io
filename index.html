@@ -2614,6 +2614,7 @@ async function renderHome(){
 }
 
 async function refreshForYouRow(){
+  const myGeneration = renderGeneration;
   const profile = getCurrentProfile();
   const fullPool = Array.from(new Set([
     ...(profile.myListIds || []),
@@ -2629,6 +2630,7 @@ async function refreshForYouRow(){
   // Make sure the source titles (and their embedded recommendation lists)
   // are actually in cache before reading from them.
   await mapQueued(sourceIds, fetchById);
+  if(myGeneration !== renderGeneration) return; // a newer render started while this was in flight -- abandon it
 
   const seen = new Set(sourceIds);
   const recs = [];
@@ -2648,6 +2650,7 @@ async function refreshForYouRow(){
   if(!recs.length){ document.querySelectorAll('#row_For_You').forEach(el=>el.remove()); return; }
 
   const results = await mapQueued(recs, r => fetchByTmdbId(r.id, r.type));
+  if(myGeneration !== renderGeneration) return;
   const valid = results.filter(Boolean);
   if(!valid.length){ document.querySelectorAll('#row_For_You').forEach(el=>el.remove()); return; }
 
