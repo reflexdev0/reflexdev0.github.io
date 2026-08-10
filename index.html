@@ -1667,7 +1667,6 @@ const CATALOG = {
                "tt0111161","tt0137523","tt0109830","tt6751668",
                "tt0245429","tt4633694","tt2380307","tt5311514",
                "tt0076759","tt0080684","tt22022452","tt6723592"],
-  "New & Trending": ["tt33764258","tt12042730","tt32278481","tt8814476","tt29355505","tt5950044"],
   "Action": ["tt1392190","tt2911666","tt0468569","tt4912910","tt1745960","tt15239678",
              "tt0848228","tt4154796","tt4154756","tt0499549","tt0107290","tt0369610",
              "tt1631867","tt0790636","tt0076759","tt0080684","tt2488496","tt3748528"],
@@ -2616,11 +2615,16 @@ async function renderHome(){
 
 async function refreshForYouRow(){
   const profile = getCurrentProfile();
-  const sourceIds = Array.from(new Set([
+  const fullPool = Array.from(new Set([
     ...(profile.myListIds || []),
     ...Object.keys(profile.watching || {})
-  ])).slice(0, 8);
-  if(!sourceIds.length){ document.querySelectorAll('#row_For_You').forEach(el=>el.remove()); return; }
+  ]));
+  if(!fullPool.length){ document.querySelectorAll('#row_For_You').forEach(el=>el.remove()); return; }
+  // Randomly sample up to 8 from the full pool each time, rather than
+  // always the same fixed first 8 -- since TMDB's own recommendations for
+  // a given title are deterministic, always drawing from the same fixed
+  // subset produced the exact same "For You" row every single visit.
+  const sourceIds = [...fullPool].sort(()=> Math.random() - 0.5).slice(0, 8);
 
   // Make sure the source titles (and their embedded recommendation lists)
   // are actually in cache before reading from them.
@@ -2640,6 +2644,7 @@ async function refreshForYouRow(){
     }
     if(recs.length >= 20) break;
   }
+  recs.sort(()=> Math.random() - 0.5);
   if(!recs.length){ document.querySelectorAll('#row_For_You').forEach(el=>el.remove()); return; }
 
   const results = await mapQueued(recs, r => fetchByTmdbId(r.id, r.type));
