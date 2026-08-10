@@ -4141,6 +4141,23 @@ function hideSplash(){
 // data or an incognito window can make a device look "new" again), but it
 // makes casual account-sharing mildly inconvenient the same way Netflix's
 // and Spotify's own device limits do -- neither of those are airtight either.
+// Approximate location (city/region) for a device, looked up once when that
+// device is first registered -- not on every visit, since we only care
+// about roughly where each device originally logged in from, not ongoing
+// movement. Uses ipwho.is, which explicitly supports HTTPS for browser
+// requests (many free IP-geolocation APIs are HTTP-only and would get
+// silently blocked by the browser on our HTTPS-hosted site). Fails
+// gracefully -- this is optional context, never something that should block
+// someone from actually logging in if the lookup itself has a hiccup.
+async function getApproxLocation(){
+  try{
+    const res = await fetchWithTimeout('https://ipwho.is/', 5000);
+    const data = await res.json();
+    if(!data.success) return null;
+    return [data.city, data.region].filter(Boolean).join(', ') || data.country || null;
+  }catch(e){ return null; }
+}
+
 async function checkDeviceLimit(uid){
   const deviceId = getDeviceId();
   const userRef = doc(db, 'users', uid);
@@ -4156,8 +4173,21 @@ async function checkDeviceLimit(uid){
     return true;
   }
   if(devices.length < 5){
-    devices.push({ id: deviceId, label: getDeviceLabel(), lastSeen: Date.now() });
+    const newDevice = { id: deviceId, label: getDeviceLabel(), lastSeen: Date.now(), firstSeen: Date.now(), location: null };
+    devices.push(newDevice);
     setDoc(userRef, { devices }, { merge:true }).catch(()=>{});
+    // Location is fetched in the background, not awaited here -- login
+    // shouldn't wait on a third-party lookup that could be slow or
+    // unreachable. Once it resolves, the device record is simply updated
+    // in place with whatever was found.
+    getApproxLocation().then(async location=>{
+      if(!location) return;
+      try{
+        const freshSnap = await getDoc(userRef);
+        const freshDevices = (freshSnap.exists() && freshSnap.data().devices) || devices;
+        await setDoc(userRef, { devices: freshDevices.map(d => d.id === deviceId ? {...d, location} : d) }, { merge:true });
+      }catch(e){ /* non-critical -- location just won't show for this device until next login */ }
+    });
     return true;
   }
   showDeviceLimitScreen(uid, devices);
@@ -4183,7 +4213,7 @@ async function renderMyDevicesSection(){
     statusEl.textContent = `${devices.length} of 5 devices signed in.`;
     listEl.innerHTML = devices.map(d => `
       <div class="admin-list-row">
-        <span>${escapeHtml(d.label)}${d.id === myDeviceId ? ' (this device)' : ''} -- last used ${new Date(d.lastSeen).toLocaleDateString()}</span>
+        <span>${escapeHtml(d.label)}${d.id === myDeviceId ? ' (this device)' : ''}${d.location ? ' -- ' + escapeHtml(d.location) : ''} -- last used ${new Date(d.lastSeen).toLocaleDateString()}</span>
         <button data-id="${d.id}">Remove</button>
       </div>`).join('');
     listEl.querySelectorAll('button').forEach(btn=>{
@@ -4210,7 +4240,7 @@ function showDeviceLimitScreen(uid, devices){
   const gate = document.getElementById('deviceLimitGate');
   const list = document.getElementById('deviceLimitList');
   list.innerHTML = devices.map(d => `
-    <div class="admin-list-row"><span>${escapeHtml(d.label)} -- last used ${new Date(d.lastSeen).toLocaleDateString()}</span><button data-id="${d.id}">Remove</button></div>
+    <div class="admin-list-row"><span>${escapeHtml(d.label)}${d.location ? ' -- ' + escapeHtml(d.location) : ''} -- last used ${new Date(d.lastSeen).toLocaleDateString()}</span><button data-id="${d.id}">Remove</button></div>
   `).join('');
   list.querySelectorAll('button').forEach(btn=>{
     btn.onclick = async ()=>{
@@ -4512,7 +4542,7 @@ async function loadAdminPanel(){
         const deviceBadge = isAdmin ? '' : `<button class="settings-link-btn device-toggle" style="color:${deviceCountColor};" data-uid="${d.id}">${devices.length}/5 devices</button>`;
         const deviceListHtml = devices.length ? devices.map(dev => `
           <div class="admin-list-row" style="padding-left:16px; font-size:11px;">
-            <span>${escapeHtml(dev.label)} -- last used ${new Date(dev.lastSeen).toLocaleDateString()}</span>
+            <span>${escapeHtml(dev.label)}${dev.location ? ' -- ' + escapeHtml(dev.location) : ' -- location unknown (added before this feature)'} -- last used ${new Date(dev.lastSeen).toLocaleDateString()}</span>
           </div>`).join('') : `<p class="admin-list-empty" style="padding-left:16px;">No devices on record yet.</p>`;
         return `<div class="admin-list-row"><span>${label}</span><span style="display:flex; gap:10px; align-items:center;">
           ${deviceBadge}
