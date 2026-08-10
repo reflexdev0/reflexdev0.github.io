@@ -1820,6 +1820,15 @@ function clearMetadataCache(){
     if(k && k.startsWith('meta:')) keysToRemove.push(k);
   }
   keysToRemove.forEach(k => { localStorage.removeItem(k); cleared++; });
+  // The AniList lookup cache (used for anime sub/dub matching) has no expiry
+  // of its own, unlike the 24h TTL on regular metadata -- a bad match here
+  // would otherwise stick permanently with no way to self-correct. Cleared
+  // alongside the metadata cache since it's the same category of disposable,
+  // re-fetchable data.
+  if(localStorage.getItem('reflextv_anilist_cache')){
+    localStorage.removeItem('reflextv_anilist_cache');
+    cleared++;
+  }
   return cleared;
 }
 
