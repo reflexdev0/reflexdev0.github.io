@@ -17,7 +17,7 @@
 <link rel="dns-prefetch" href="https://image.tmdb.org">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Archivo+Black&family=Playfair+Display:wght@700;900&family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#0a0a0b;
@@ -31,6 +31,20 @@
     --red-light:#ff4a5e;
     --red-dim:#5c0f1a;
     --red-rgb:226,20,46;
+    --glass-fill: rgba(24,18,19,0.5);
+    --glass-fill-strong: rgba(24,18,19,0.72);
+    --glass-border: rgba(255,255,255,0.09);
+    --glass-highlight: rgba(255,255,255,0.16);
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body: 'Inter', sans-serif;
+  }
+  .glass{
+    background: var(--glass-fill);
+    backdrop-filter: blur(18px) saturate(1.4);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    border: 1px solid var(--glass-border);
+    border-top-color: var(--glass-highlight);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
@@ -40,7 +54,7 @@
       linear-gradient(180deg, #0d0708 0%, #0a0a0b 30%, #050506 100%);
     background-attachment:fixed;
     color:var(--text);
-    font-family:'Inter',sans-serif;
+    font-family:var(--font-body);
     -webkit-font-smoothing:antialiased;
     min-height:100vh;
   }
@@ -49,7 +63,7 @@
   ::-webkit-scrollbar{height:8px;width:8px;}
   ::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
   ::-webkit-scrollbar-track{background:transparent;}
-  button{font-family:'Inter',sans-serif;}
+  button{font-family:var(--font-body);}
 
   /* ---------- Top bar ---------- */
   #splashScreen{
@@ -59,7 +73,7 @@
   }
   #splashScreen.hide{ opacity:0; pointer-events:none; }
   .splash-logo{
-    font-family:'Bebas Neue',sans-serif; font-weight:400; font-size:44px; letter-spacing:0.03em;
+    font-family:var(--font-display); font-weight:400; font-size:44px; letter-spacing:0.03em;
     color:#fff; animation:splashPulse 1.4s ease-in-out infinite;
   }
   .splash-logo span{ color:var(--red); }
@@ -73,12 +87,12 @@
   }
   .ww-gate.show{ opacity:1; pointer-events:auto; }
   .ww-logo{
-    font-family:'Bebas Neue',sans-serif; font-weight:400; font-size:32px; letter-spacing:0.03em;
+    font-family:var(--font-display); font-weight:400; font-size:32px; letter-spacing:0.03em;
     color:#fff; position:absolute; top:32px; left:50%; transform:translateX(-50%);
   }
   .ww-logo span{ color:var(--red); }
   .ww-heading{
-    font-family:'Bebas Neue',sans-serif; font-weight:400; font-size:34px; letter-spacing:0.02em;
+    font-family:var(--font-display); font-weight:400; font-size:34px; letter-spacing:0.02em;
     color:var(--text); margin:0; text-align:center;
   }
   .ww-profiles{
@@ -90,7 +104,7 @@
   }
   .ww-profile-circle{
     width:88px; height:88px; border-radius:12px; display:flex; align-items:center; justify-content:center;
-    font-family:'Bebas Neue',sans-serif; font-size:34px; color:#fff; background-size:cover; background-position:center;
+    font-family:var(--font-display); font-size:34px; color:#fff; background-size:cover; background-position:center;
     border:3px solid transparent; transition:border-color .15s, transform .15s;
   }
   .ww-profile:hover .ww-profile-circle, .ww-profile:focus-visible .ww-profile-circle{
@@ -118,20 +132,26 @@
   .pull-refresh-indicator.ready{ color:var(--red); }
   .pull-refresh-indicator.spinning{ animation:splashPulse 0.6s linear infinite; }
   header{
-    position:sticky; top:0; z-index:40;
+    position:sticky; top:16px; z-index:40;
     display:flex; align-items:center; gap:22px;
-    padding:16px 40px;
-    background:linear-gradient(to bottom, rgba(6,4,5,0.97), rgba(6,4,5,0.8) 70%, transparent);
-    backdrop-filter:blur(8px);
-    transition:padding .25s ease;
+    padding:12px 24px;
+    margin:0 auto; max-width:1160px; width:calc(100% - 32px);
+    border-radius:100px;
+    background: var(--glass-fill);
+    backdrop-filter: blur(18px) saturate(1.4);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    border: 1px solid var(--glass-border);
+    border-top-color: var(--glass-highlight);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
+    transition:padding .25s ease, top .25s ease;
   }
-  header.scrolled{padding:9px 40px;}
+  header.scrolled{padding:8px 24px; top:10px;}
   @media (max-width:640px){
     header.scrolled{padding:8px 16px;}
     header.scrolled .logo{font-size:24px;}
   }
   .logo{
-    font-family:'Bebas Neue',sans-serif;
+    font-family:var(--font-display);
     font-weight:400;
     font-size:30px;
     letter-spacing:0.03em;
@@ -161,8 +181,11 @@
   .nav-dropdown:hover .nav-dropdown-btn, .nav-dropdown.open .nav-dropdown-btn{color:var(--text);}
   .nav-dropdown-panel{
     position:absolute; top:calc(100% + 14px); left:0; z-index:70;
-    background:var(--surface-2); border:1px solid var(--line); border-radius:12px;
-    padding:18px; display:none; box-shadow:0 16px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(var(--red-rgb),0.08), 0 0 30px -8px rgba(var(--red-rgb),0.35);
+    background: var(--glass-fill-strong);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border:1px solid var(--glass-border); border-top-color: var(--glass-highlight); border-radius:16px;
+    padding:18px; display:none; box-shadow:0 16px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
     grid-template-columns:1.3fr 1fr; gap:26px; min-width:400px;
   }
   .nav-dropdown.open .nav-dropdown-panel{display:grid;}
@@ -209,17 +232,19 @@
   }
   .search-wrap input{
     width:100%;
-    background:rgba(255,255,255,0.06);
-    border:1px solid var(--line);
+    background: var(--glass-fill);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border:1px solid var(--glass-border);
     color:var(--text);
-    font-family:'Inter',sans-serif;
+    font-family:var(--font-body);
     font-size:16px;
     padding:9px 14px 9px 34px;
     border-radius:100px;
     outline:none;
     transition:border-color .2s, background .2s;
   }
-  .search-wrap input:focus{border-color:var(--red); background:rgba(255,255,255,0.09);}
+  .search-wrap input:focus{border-color:var(--red); background: var(--glass-fill-strong);}
   .search-preview{
     position:absolute; top:calc(100% + 8px); left:0; right:0; z-index:70;
     background:var(--surface-2); border:1px solid var(--line); border-radius:10px;
@@ -240,7 +265,7 @@
 
   button.logo{
     border:none; background:transparent; cursor:pointer; padding:0;
-    font-family:'Bebas Neue',sans-serif; font-size:30px; letter-spacing:0.03em;
+    font-family:var(--font-display); font-size:30px; letter-spacing:0.03em;
     color:var(--red-light);
     flex-shrink:0;
     transition:transform .15s ease;
@@ -255,7 +280,7 @@
 
   .profile-btn{
     width:36px; height:36px; border-radius:50%; border:2px solid var(--line);
-    background:var(--red); color:#fff; font-family:'Inter',sans-serif; font-weight:700; font-size:14px;
+    background:var(--red); color:#fff; font-family:var(--font-body); font-weight:700; font-size:14px;
     cursor:pointer; flex-shrink:0; overflow:hidden;
     display:flex; align-items:center; justify-content:center; padding:0;
   }
@@ -268,7 +293,10 @@
   .menu-overlay.open{opacity:1; pointer-events:auto;}
   .side-menu{
     position:fixed; top:0; right:0; bottom:0; width:320px; max-width:88vw; z-index:151;
-    background:var(--bg2); border-left:1px solid var(--line);
+    background: var(--glass-fill-strong);
+    backdrop-filter: blur(24px) saturate(1.4);
+    -webkit-backdrop-filter: blur(24px) saturate(1.4);
+    border-left:1px solid var(--glass-border);
     transform:translateX(100%); transition:transform .28s cubic-bezier(.2,.8,.3,1);
     display:flex; flex-direction:column;
   }
@@ -276,7 +304,7 @@
   @media (max-width:640px){
     .side-menu{
       top:auto; right:0; left:0; bottom:0; width:auto; max-width:none; max-height:85vh;
-      border-left:none; border-top:1px solid var(--line); border-radius:18px 18px 0 0;
+      border-left:none; border-top:1px solid var(--glass-border); border-radius:22px 22px 0 0;
       transform:translateY(100%);
     }
     .side-menu.open{ transform:translateY(0); }
@@ -284,7 +312,7 @@
   .side-menu-head{
     display:flex; align-items:center; justify-content:space-between;
     padding:20px 20px; border-bottom:1px solid var(--line);
-    font-family:'Bebas Neue',sans-serif; font-size:19px; letter-spacing:0.02em;
+    font-family:var(--font-display); font-size:19px; letter-spacing:0.02em;
   }
   .side-menu-head .theater-close{position:static;}
   .side-menu-body{padding:20px; overflow-y:auto; flex:1;}
@@ -306,7 +334,7 @@
   .menu-section-title.divider{padding-top:22px; margin-top:22px; border-top:1px solid rgba(255,255,255,0.1);}
   .auth-input{
     width:100%; box-sizing:border-box; background:rgba(255,255,255,0.06); border:1px solid var(--line);
-    color:var(--text); font-family:'Inter',sans-serif; font-size:16px; padding:10px 12px;
+    color:var(--text); font-family:var(--font-body); font-size:16px; padding:10px 12px;
     border-radius:8px; margin-bottom:8px; outline:none;
   }
   .auth-input:focus{border-color:var(--red);}
@@ -369,6 +397,16 @@
     width:32px; height:32px; border-radius:50%; cursor:pointer; border:2px solid transparent;
   }
   .theme-swatch.active{border-color:#fff;}
+  .font-swatches{ display:flex; flex-direction:column; gap:8px; width:100%; }
+  .font-swatch{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:10px 14px; border-radius:10px; background: rgba(255,255,255,0.04);
+    border:1px solid var(--glass-border); cursor:pointer; color:var(--text);
+    font-size:17px; text-align:left;
+  }
+  .font-swatch.active{ border-color:var(--red); background:rgba(var(--red-rgb),0.1); }
+  .font-swatch .fs-check{ font-size:12px; color:var(--red-light); opacity:0; }
+  .font-swatch.active .fs-check{ opacity:1; }
   .color-wheel-row{ display:flex; align-items:center; gap:10px; margin-top:12px; }
   .color-wheel-row input[type="color"]{
     width:40px; height:40px; padding:0; border:2px solid var(--line); border-radius:50%;
@@ -508,7 +546,7 @@
     background:var(--red); padding:4px 10px; border-radius:4px;
   }
   .hero-title{
-    font-family:'Bebas Neue',sans-serif;
+    font-family:var(--font-display);
     font-weight:400;
     font-size:clamp(38px, 6vw, 72px);
     letter-spacing:0.01em;
@@ -530,7 +568,7 @@
   }
   .hero-dot.active{background:var(--red); width:20px; border-radius:4px;}
   .btn{
-    font-family:'Inter',sans-serif; font-weight:700; font-size:14px;
+    font-family:var(--font-body); font-weight:700; font-size:14px;
     padding:12px 24px; border-radius:6px; border:none; cursor:pointer;
     display:inline-flex; align-items:center; gap:8px;
     transition:transform .15s ease, background .2s ease, box-shadow .2s ease;
@@ -538,8 +576,8 @@
   .btn:active{transform:scale(0.97);}
   .btn-primary{background:var(--red); color:#fff;}
   .btn-primary:hover{background:var(--red-light); box-shadow:0 6px 20px rgba(var(--red-rgb),0.45);}
-  .btn-ghost{background:rgba(255,255,255,0.1); color:var(--text); border:1px solid rgba(255,255,255,0.16);}
-  .btn-ghost:hover{background:rgba(255,255,255,0.18);}
+  .btn-ghost{background: var(--glass-fill); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); color:var(--text); border:1px solid var(--glass-border);}
+  .btn-ghost:hover{background: var(--glass-fill-strong);}
 
   /* ---------- Rows / grid ---------- */
   main{padding:8px 0 90px; position:relative; z-index:1;}
@@ -580,7 +618,8 @@
   }
   @media (max-width:640px){ .toast-container{ bottom:80px; } }
   .toast{
-    background:var(--surface-2); border:1px solid var(--line); color:var(--text);
+    background: var(--glass-fill-strong); backdrop-filter: blur(20px) saturate(1.4); -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border:1px solid var(--glass-border); border-top-color: var(--glass-highlight); color:var(--text);
     font-size:13px; padding:11px 20px; border-radius:100px; box-shadow:0 8px 24px rgba(0,0,0,0.5);
     opacity:0; transform:translateY(10px); transition:opacity .25s, transform .25s;
     display:flex; align-items:center; gap:10px; max-width:100%;
@@ -589,7 +628,8 @@
   .toast button{ background:none; border:none; color:var(--red-light); font-weight:700; font-size:12.5px; cursor:pointer; flex-shrink:0; }
   .confirm-dialog{
     position:fixed; top:50%; left:50%; transform:translate(-50%,-50%) scale(0.95);
-    z-index:401; background:var(--bg2); border:1px solid var(--line); border-radius:14px;
+    z-index:401; background: var(--glass-fill-strong); backdrop-filter: blur(24px) saturate(1.4); -webkit-backdrop-filter: blur(24px) saturate(1.4);
+    border:1px solid var(--glass-border); border-top-color: var(--glass-highlight); border-radius:20px;
     padding:24px; width:min(320px, 88vw); opacity:0; pointer-events:none; transition:opacity .2s, transform .2s;
   }
   .confirm-dialog.show{ opacity:1; transform:translate(-50%,-50%) scale(1); pointer-events:auto; }
@@ -602,7 +642,7 @@
   }
   .subtitle-dialog-head{
     display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;
-    font-family:'Bebas Neue',sans-serif; font-size:19px; letter-spacing:0.02em;
+    font-family:var(--font-display); font-size:19px; letter-spacing:0.02em;
   }
   .subtitle-dialog-head .theater-close{ position:static; }
   .subtitle-howto{
@@ -641,17 +681,18 @@
     padding:0 40px; margin-bottom:18px;
   }
   .row-title{
-    font-family:'Bebas Neue',sans-serif; font-weight:400; font-size:24px; letter-spacing:0.02em;
+    font-family:var(--font-display); font-weight:400; font-size:24px; letter-spacing:0.02em;
     display:flex; align-items:center; gap:10px;
     border-left:4px solid var(--red); padding-left:12px;
   }
-  .row-title .count{font-family:'Inter',sans-serif; font-size:11.5px; color:var(--muted); font-weight:600;}
+  .row-title .count{font-family:var(--font-body); font-size:11.5px; color:var(--muted); font-weight:600;}
   .new-ep-badge{
-    font-family:'Inter',sans-serif; font-size:10.5px; font-weight:700; color:#fff;
+    font-family:var(--font-body); font-size:10.5px; font-weight:700; color:#fff;
     background:var(--red); padding:2px 9px; border-radius:100px; margin-left:8px; vertical-align:middle;
   }
   .see-all-btn{
-    background:transparent; border:1px solid var(--line); color:var(--muted);
+    background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border:1px solid var(--glass-border); color:var(--muted);
     font-size:12.5px; font-weight:700; padding:7px 16px; border-radius:100px; cursor:pointer;
     transition:all .18s; white-space:nowrap; flex-shrink:0;
   }
@@ -716,12 +757,15 @@
     width:100%;height:100%;
     display:flex; align-items:center; justify-content:center;
     background:linear-gradient(160deg, var(--surface-2), var(--surface));
-    color:var(--muted); font-family:'Inter',sans-serif; font-weight:600; font-size:13px; text-align:center; padding:14px;
+    color:var(--muted); font-family:var(--font-body); font-weight:600; font-size:13px; text-align:center; padding:14px;
   }
   .card-overlay{
     position:absolute; left:0; right:0; bottom:0;
     padding:10px 10px 12px;
-    background:linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0) 92%);
+    background: var(--glass-fill-strong);
+    backdrop-filter: blur(14px) saturate(1.3);
+    -webkit-backdrop-filter: blur(14px) saturate(1.3);
+    border-top: 1px solid var(--glass-highlight);
     opacity:0; transform:translateY(6px);
     transition:opacity .22s, transform .22s;
     pointer-events:none;
@@ -804,7 +848,7 @@
   .empty-state{
     padding:80px 40px; text-align:center; color:var(--muted);
   }
-  .empty-state h3{font-family:'Bebas Neue',sans-serif; color:var(--text); font-weight:400; font-size:28px; margin-bottom:8px; letter-spacing:0.02em;}
+  .empty-state h3{font-family:var(--font-display); color:var(--text); font-weight:400; font-size:28px; margin-bottom:8px; letter-spacing:0.02em;}
 
   /* ---------- Theater modal ---------- */
   .theater{
@@ -821,9 +865,12 @@
     width:100%; max-width:1040px;
     max-height:92vh;
     overflow-y:auto;
-    background:linear-gradient(180deg, var(--bg2), #0a0708);
-    border:1px solid var(--line);
-    border-radius:14px;
+    background: var(--glass-fill-strong);
+    backdrop-filter: blur(24px) saturate(1.4);
+    -webkit-backdrop-filter: blur(24px) saturate(1.4);
+    border:1px solid var(--glass-border);
+    border-top-color: var(--glass-highlight);
+    border-radius:22px;
     transform:translateY(18px) scale(0.98);
     transition:transform .3s cubic-bezier(.2,.8,.3,1);
   }
@@ -852,7 +899,7 @@
   .toolbar-group select, .toolbar-group input{
     background:rgba(255,255,255,0.07); color:var(--text);
     border:1px solid var(--line); border-radius:6px;
-    font-family:'Inter',sans-serif; font-size:16px; padding:6px 10px;
+    font-family:var(--font-body); font-size:16px; padding:6px 10px;
     outline:none; cursor:pointer;
   }
   .toolbar-group input[type=number]{width:60px; cursor:text;}
@@ -883,7 +930,7 @@
   .theater-poster img{width:100%; height:100%; object-fit:cover; display:block;}
   .theater-poster .ph{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface-2);color:var(--muted);font-size:13px;text-align:center;padding:10px;}
   .theater-info{flex:1; min-width:0;}
-  .theater-title{font-family:'Bebas Neue',sans-serif; font-weight:400; font-size:32px; letter-spacing:0.01em; margin:0 0 10px;}
+  .theater-title{font-family:var(--font-display); font-weight:400; font-size:32px; letter-spacing:0.01em; margin:0 0 10px;}
   .theater-meta{display:flex; flex-wrap:wrap; gap:8px 14px; font-size:13px; color:var(--muted); margin-bottom:14px; align-items:center;}
   .theater-meta span.rating{color:var(--red-light); font-weight:700;}
   .genre-chip{
@@ -1061,6 +1108,10 @@
               <span class="settings-hint">Any color</span>
             </div>
           </div>
+        </div>
+        <div class="settings-row" style="align-items:flex-start; margin-top:18px;">
+          <span>Display font</span>
+          <div id="fontSwatches" class="font-swatches"></div>
         </div>
       </div>
       <div class="side-menu-panel" data-panel="playback">
@@ -1924,13 +1975,20 @@ function applyTheme(hex, hexLight, skipSave){
   document.documentElement.style.setProperty('--red-light', hexLight);
   document.documentElement.style.setProperty('--red-rgb', hexToRgbString(hex));
   if(!skipSave){
-    updateCurrentProfile(p => { p.theme = { hex, hexLight }; });
+    updateCurrentProfile(p => { p.theme = { ...(p.theme||{}), hex, hexLight }; });
+  }
+}
+function applyFont(fontStack, skipSave){
+  document.documentElement.style.setProperty('--font-display', fontStack);
+  if(!skipSave){
+    updateCurrentProfile(p => { p.theme = { ...(p.theme||{}), font: fontStack }; });
   }
 }
 function initTheme(){
   const profileTheme = getCurrentProfile().theme;
   if(profileTheme){
-    applyTheme(profileTheme.hex, profileTheme.hexLight, true);
+    if(profileTheme.hex) applyTheme(profileTheme.hex, profileTheme.hexLight, true);
+    if(profileTheme.font) applyFont(profileTheme.font, true);
     return;
   }
   // One-time fallback for anyone who picked a color before this was made
@@ -2133,9 +2191,9 @@ function showDiagnostic(){
   mainEl.insertAdjacentHTML('afterbegin', `
     <div id="diagBanner" style="margin:0 40px 30px; padding:18px 20px; border-radius:10px;
       background:rgba(var(--red-rgb),0.08); border:1px solid rgba(var(--red-rgb),0.3); color:#ffb3ba; font-size:13px; line-height:1.6; font-family:monospace;">
-      <b style="color:#f5f4f4; font-family:'Inter',sans-serif;">Fetch trace (send a screenshot of this):</b><br/>
+      <b style="color:#f5f4f4; font-family:var(--font-body);">Fetch trace (send a screenshot of this):</b><br/>
       ${lastError || 'unknown'}<br/><br/>
-      <span style="font-family:'Inter',sans-serif;">Test the key directly:
+      <span style="font-family:var(--font-body);">Test the key directly:
       <a href="https://api.themoviedb.org/3/movie/550?api_key=${TMDB_KEY}" target="_blank" style="color:var(--red-light); text-decoration:underline;">TMDB test link</a></span>
     </div>`);
 }
@@ -3959,11 +4017,18 @@ function renderProfileMenu(){
   };
 
   const THEME_PRESETS = [
+    { name:'Colorless', red:'#d8d8dc', light:'#ffffff' },
     { name:'Crimson', red:'#e2142e', light:'#ff4a5e' },
     { name:'Electric Blue', red:'#1f6fe0', light:'#5aa4ff' },
     { name:'Emerald', red:'#1f9d55', light:'#4fd67f' },
     { name:'Violet', red:'#8a3fe0', light:'#b57bff' },
     { name:'Amber', red:'#d99a1f', light:'#ffc84f' },
+    { name:'Rose', red:'#e0398a', light:'#ff6fb5' },
+    { name:'Teal', red:'#14a5a0', light:'#4fd9d3' },
+    { name:'Tangerine', red:'#e0611f', light:'#ff9a5a' },
+    { name:'Indigo', red:'#4f4fe0', light:'#8888ff' },
+    { name:'Lime', red:'#7bc41f', light:'#a8ec4f' },
+    { name:'Cyan', red:'#1fb3d9', light:'#5adcff' },
   ];
   const swatchWrap = document.getElementById('themeSwatches');
   const savedTheme = getCurrentProfile().theme || storage.get('reflextv_theme', THEME_PRESETS[0]);
@@ -3985,6 +4050,25 @@ function renderProfileMenu(){
     applyTheme(colorWheel.value); // light variant auto-computed inside applyTheme
     swatchWrap.querySelectorAll('.theme-swatch').forEach(s=>s.classList.remove('active'));
   };
+
+  // Font presets -- each rendered in its own actual font as a live preview.
+  const FONT_PRESETS = [
+    { name:'Bebas Neue', stack:`'Bebas Neue', sans-serif` },
+    { name:'Archivo Black', stack:`'Archivo Black', sans-serif` },
+    { name:'Playfair Display', stack:`'Playfair Display', serif` },
+    { name:'Space Grotesk', stack:`'Space Grotesk', sans-serif` },
+  ];
+  const fontWrap = document.getElementById('fontSwatches');
+  const savedFont = (getCurrentProfile().theme && getCurrentProfile().theme.font) || FONT_PRESETS[0].stack;
+  fontWrap.innerHTML = FONT_PRESETS.map(f=>`
+    <button class="font-swatch ${f.stack===savedFont?'active':''}" style="font-family:${f.stack};" data-stack="${f.stack.replace(/"/g,'&quot;')}">${f.name}<span class="fs-check">✓</span></button>`).join('');
+  fontWrap.querySelectorAll('.font-swatch').forEach(sw=>{
+    sw.onclick = ()=>{
+      applyFont(sw.dataset.stack);
+      fontWrap.querySelectorAll('.font-swatch').forEach(s=>s.classList.remove('active'));
+      sw.classList.add('active');
+    };
+  });
 
   // Playback settings
   const kidsProfileToggle = document.getElementById('kidsProfileToggle');
