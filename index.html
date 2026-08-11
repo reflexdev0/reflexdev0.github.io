@@ -31,6 +31,7 @@
     --red-light:#ff4a5e;
     --red-dim:#5c0f1a;
     --red-rgb:226,20,46;
+    --gold:#f2b544; --gold-rgb:242,181,68;
     --glass-fill: rgba(24,18,19,0.5);
     --glass-fill-strong: rgba(24,18,19,0.72);
     --glass-border: rgba(255,255,255,0.09);
@@ -469,19 +470,55 @@
     padding:5px 12px; border-radius:100px;
   }
 
+  /* ---------- Desktop draggable, edge-snapping dock ---------- */
+  #desktopDock{
+    position:fixed; z-index:100; display:flex; align-items:center; gap:6px;
+    padding:9px; border-radius:100px; cursor:grab;
+    transition: border-radius .25s ease;
+    user-select:none;
+  }
+  #desktopDock.dragging{ cursor:grabbing; transition:none; }
+  #desktopDock.vertical{ flex-direction:column; }
+  .dock-item{
+    width:42px; height:42px; border-radius:50%; flex-shrink:0; border:none; background:none;
+    display:flex; align-items:center; justify-content:center; position:relative; color:var(--muted); cursor:pointer;
+  }
+  .dock-item svg{ width:19px; height:19px; }
+  .dock-item.active{ background:rgba(var(--red-rgb),0.16); color:var(--red-light); }
+  .dock-item.drag-handle{ opacity:0.45; cursor:grab; color:var(--text); }
+  .dock-item.drag-handle svg{ width:15px; height:15px; }
+  .snap-zone{
+    position:fixed; z-index:99; pointer-events:none; opacity:0; transition:opacity .15s;
+    background:rgba(var(--red-rgb),0.1); border:2px dashed rgba(var(--red-rgb),0.4);
+  }
+  .snap-zone.show{ opacity:1; }
+  #zoneTop{ top:0; left:0; right:0; height:90px; }
+  #zoneBottom{ bottom:0; left:0; right:0; height:90px; }
+  #zoneLeft{ top:0; bottom:0; left:0; width:110px; }
+  #zoneRight{ top:0; bottom:0; right:0; width:110px; }
+  @media (max-width:640px){
+    #desktopDock, .snap-zone{ display:none; }
+  }
+
   .bottom-nav{
     display:none;
-    position:fixed; bottom:0; left:0; right:0; z-index:60;
-    background:rgba(10,10,11,0.97); border-top:1px solid var(--line);
-    padding:8px 0 max(8px, env(safe-area-inset-bottom));
+    position:fixed; bottom:max(18px, calc(env(safe-area-inset-bottom) + 10px)); left:50%; transform:translateX(-50%); z-index:60;
+    background: var(--glass-fill-strong);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border: 1px solid var(--glass-border); border-top-color: var(--glass-highlight);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
+    border-radius:100px;
+    padding:8px; gap:4px;
     justify-content:space-around; align-items:center;
   }
   .bottom-nav button{
-    background:none; border:none; color:var(--muted); font-size:10px; font-weight:600;
-    display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer;
+    background:none; border:none; color:var(--muted); cursor:pointer;
+    width:46px; height:46px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
   }
-  .bottom-nav button.active{color:var(--red-light);}
-  .bottom-nav svg{width:22px; height:22px;}
+  .bottom-nav button.active{color:var(--red-light); background:rgba(var(--red-rgb),0.16);}
+  .bottom-nav svg{width:20px; height:20px;}
   @media (max-width:640px){
     .bottom-nav{display:flex;}
     body{padding-bottom:60px;}
@@ -775,6 +812,12 @@
   .card-sub{font-size:10.5px; color:var(--muted); display:flex; gap:6px; align-items:center; margin-bottom:4px;}
   .card-sub .star{color:var(--red-light); font-weight:700;}
   .card-plot{font-size:10px; line-height:1.35; color:#c2bcbd; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+  .rank-ribbon{
+    position:absolute; top:9px; left:-3px; z-index:3; padding:4px 10px 4px 12px; border-radius:0 100px 100px 0;
+    background:linear-gradient(120deg, #f2e6cf, #e7d3a8); color:#2a1f10;
+    font-family:var(--font-display); font-size:12px; letter-spacing:0.03em;
+    box-shadow:0 4px 10px rgba(0,0,0,0.35);
+  }
   .card-play{
     position:absolute; top:8px; right:8px;
     width:26px; height:26px; border-radius:50%;
@@ -2201,6 +2244,27 @@ function showDiagnostic(){
 /* ---------------- Rendering helpers ---------------- */
 function poster(url){ return (url && url !== 'N/A') ? url : null; }
 
+// Renders a rating (out of 10) as a 5-star visual, rounded to the nearest
+// half star. Used wherever a rating shows up -- cards, hero, theater --
+// instead of a bare "★ 7.6" text pairing.
+let starRatingIdSeq = 0;
+function starRatingHTML(rating10, size){
+  size = size || 12;
+  const rating5 = Math.round((parseFloat(rating10) || 0) * 2) / 2 / 2; // /10 scale -> /5 scale, nearest half
+  let stars = '';
+  for(let i = 1; i <= 5; i++){
+    if(rating5 >= i){
+      stars += `<svg viewBox="0 0 24 24" fill="var(--gold)" width="${size}" height="${size}"><path d="M12 2l3 7h7l-5.5 4.3L18 21l-6-4.3L6 21l1.5-7.7L2 9h7z"/></svg>`;
+    }else if(rating5 >= i - 0.5){
+      const gradId = 'halfStar' + (++starRatingIdSeq);
+      stars += `<svg viewBox="0 0 24 24" width="${size}" height="${size}"><defs><linearGradient id="${gradId}"><stop offset="50%" stop-color="var(--gold)"/><stop offset="50%" stop-color="transparent"/></linearGradient></defs><path fill="url(#${gradId})" stroke="var(--gold)" stroke-width="1.2" d="M12 2l3 7h7l-5.5 4.3L18 21l-6-4.3L6 21l1.5-7.7L2 9h7z"/></svg>`;
+    }else{
+      stars += `<svg viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.2" width="${size}" height="${size}"><path d="M12 2l3 7h7l-5.5 4.3L18 21l-6-4.3L6 21l1.5-7.7L2 9h7z"/></svg>`;
+    }
+  }
+  return `<span class="star-rating" style="display:inline-flex; align-items:center; gap:1px;">${stars}</span>`;
+}
+
 function cardHTML(m, opts){
   opts = opts || {};
   const p = poster(m.Poster);
@@ -2213,14 +2277,15 @@ function cardHTML(m, opts){
     <div class="card" data-id="${m.imdbID}" tabindex="0" role="button" aria-label="Open ${m.Title.replace(/"/g,'&quot;')}">
       <div class="card-inner">
         ${img}
+        ${opts.rank ? `<div class="rank-ribbon">TOP #${opts.rank}</div>` : ''}
         <div class="card-play" aria-hidden="true">▶</div>
-        <button class="card-add ${inList ? 'added' : ''}" data-id="${m.imdbID}" title="${inList ? 'Remove from My List' : 'Add to My List'}" aria-label="${inList ? 'Remove '+m.Title.replace(/"/g,'&quot;')+' from My List' : 'Add '+m.Title.replace(/"/g,'&quot;')+' to My List'}">${inList ? '✓' : '+'}</button>
+        <button class="card-add ${inList ? 'added' : ''}" ${opts.rank ? 'style="top:40px;"' : ''} data-id="${m.imdbID}" title="${inList ? 'Remove from My List' : 'Add to My List'}" aria-label="${inList ? 'Remove '+m.Title.replace(/"/g,'&quot;')+' from My List' : 'Add '+m.Title.replace(/"/g,'&quot;')+' to My List'}">${inList ? '✓' : '+'}</button>
         ${opts.removeFrom ? `<button class="card-remove" data-id="${m.imdbID}" data-remove-from="${opts.removeFrom}" title="Remove" aria-label="Remove ${m.Title.replace(/"/g,'&quot;')}">✕</button>` : ''}
         ${currentUser && currentUser.email === ADMIN_EMAIL ? `<button class="card-hide" data-id="${m.imdbID}" data-title="${m.Title.replace(/"/g,'&quot;')}" title="Hide this title site-wide" aria-label="Hide ${m.Title.replace(/"/g,'&quot;')} site-wide">🚫</button>` : ''}
         ${typeof opts.progress === 'number' ? `<div class="card-progress"><div style="width:${Math.min(100,Math.max(4,opts.progress))}%"></div></div>` : ''}
         <div class="card-overlay">
           <div class="card-title">${m.Title}</div>
-          <div class="card-sub"><span>${m.Year||''}</span>${m.imdbRating && m.imdbRating!=='N/A' ? `<span class="star">★ ${m.imdbRating}</span>` : ''}</div>
+          <div class="card-sub"><span>${m.Year||''}</span>${m.imdbRating && m.imdbRating!=='N/A' ? starRatingHTML(m.imdbRating, 10) : ''}</div>
           <div class="card-plot">${plotSnippet}</div>
         </div>
       </div>
@@ -2745,7 +2810,7 @@ async function refreshForYouRow(){
   attachCardHandlers();
 }
 
-async function renderLiveRow(rowId, title, endpoint, mediaType){
+async function renderLiveRow(rowId, title, endpoint, mediaType, showRank){
   mainEl.insertAdjacentHTML('beforeend', `
     <div class="row" id="${rowId}">
       ${rowHeadHTMLNoSeeAll(title)}
@@ -2764,7 +2829,7 @@ async function renderLiveRow(rowId, title, endpoint, mediaType){
     const rowEl = document.getElementById(rowId);
     if(!rowEl) return;
     if(!valid.length){ rowEl.remove(); return; }
-    rowEl.querySelector('.row-scroll').innerHTML = valid.map(cardHTML).join('');
+    rowEl.querySelector('.row-scroll').innerHTML = valid.map((m,i) => cardHTML(m, showRank && i < 3 ? { rank: i+1 } : {})).join('');
     attachCardHandlers();
   }catch(e){
     console.warn(title + ' row failed', e);
@@ -2775,7 +2840,7 @@ async function renderLiveRow(rowId, title, endpoint, mediaType){
 
 async function renderTrendingRow(){
   const kind = contentType === 'series' ? 'tv' : 'movie';
-  await renderLiveRow('row_Trending_Now', 'Trending Now (live)', `/trending/${kind}/day`, contentType === 'series' ? 'series' : 'movie');
+  await renderLiveRow('row_Trending_Now', 'Trending Now (live)', `/trending/${kind}/day`, contentType === 'series' ? 'series' : 'movie', true);
 }
 
 // Fully live rows -- no curation, pulled straight from TMDB every time, so
@@ -3100,7 +3165,7 @@ async function setHero(id){
   document.getElementById('heroTitle').textContent = m.Title;
   document.getElementById('heroMeta').innerHTML = `
     <span>${m.Year}</span><span>${m.Runtime||''}</span><span>${m.Genre||''}</span>
-    ${m.imdbRating && m.imdbRating!=='N/A' ? `<span class="rating">★ ${m.imdbRating}</span>` : ''}`;
+    ${m.imdbRating && m.imdbRating!=='N/A' ? starRatingHTML(m.imdbRating, 14) : ''}`;
   document.getElementById('heroPlot').textContent = m.Plot && m.Plot!=='N/A' ? m.Plot : '';
   document.getElementById('heroPlay').onclick = ()=> openTheater(id);
   document.getElementById('heroInfo').onclick = ()=> openTheater(id);
@@ -3476,7 +3541,7 @@ async function openTheater(id, fromPopstate){
   document.getElementById('tTitle').textContent = m.Title;
   document.getElementById('tMeta').innerHTML = `
     <span>${m.Year}</span><span>${m.Rated||''}</span><span>${m.Runtime||''}</span>
-    ${m.imdbRating && m.imdbRating!=='N/A' ? `<span class="rating">★ ${m.imdbRating} IMDb</span>` : ''}
+    ${m.imdbRating && m.imdbRating!=='N/A' ? `<span style="display:inline-flex; align-items:center; gap:6px;">${starRatingHTML(m.imdbRating, 13)}<span style="color:var(--muted); font-size:12px;">IMDb</span></span>` : ''}
     ${(m.Genre||'').split(',').filter(g=>g.trim()).map(g=>`<span class="genre-chip">${g.trim()}</span>`).join('')}`;
   document.getElementById('tPlot').textContent = m.Plot && m.Plot!=='N/A' ? m.Plot : '';
 
@@ -3901,6 +3966,13 @@ document.querySelectorAll('.type-btn').forEach(btn=>{
     buildNav();
     startHeroCarousel();
     renderHome();
+    // Keep the desktop dock's Movies/Series icon in sync, since it can also
+    // be changed here via the header toggle, not just from the dock itself.
+    const dockBtn = document.querySelector(`#desktopDock [data-dock-action="${contentType === 'series' ? 'series' : 'movies'}"]`);
+    if(dockBtn){
+      document.querySelectorAll('#desktopDock .dock-item[data-dock-action]').forEach(b=>b.classList.remove('active'));
+      dockBtn.classList.add('active');
+    }
   });
 });
 
@@ -4926,6 +4998,83 @@ document.getElementById('bottomNav').querySelectorAll('button').forEach(btn=>{
   };
 });
 
+/* ---------------- Desktop draggable, edge-snapping dock ---------------- */
+(function(){
+  const dock = document.getElementById('desktopDock');
+  if(!dock) return;
+  const zones = { top: document.getElementById('zoneTop'), bottom: document.getElementById('zoneBottom'),
+                   left: document.getElementById('zoneLeft'), right: document.getElementById('zoneRight') };
+  let dragging = false, offsetX = 0, offsetY = 0;
+
+  function positionDock(edge){
+    dock.classList.remove('vertical');
+    dock.style.top = dock.style.bottom = dock.style.left = dock.style.right = 'auto';
+    dock.style.transform = '';
+    if(edge === 'bottom'){
+      dock.style.bottom = '22px'; dock.style.left = '50%'; dock.style.transform = 'translateX(-50%)';
+    }else if(edge === 'top'){
+      dock.style.top = '100px'; dock.style.left = '50%'; dock.style.transform = 'translateX(-50%)';
+    }else if(edge === 'left'){
+      dock.classList.add('vertical');
+      dock.style.left = '18px'; dock.style.top = '50%'; dock.style.transform = 'translateY(-50%)';
+    }else if(edge === 'right'){
+      dock.classList.add('vertical');
+      dock.style.right = '18px'; dock.style.top = '50%'; dock.style.transform = 'translateY(-50%)';
+    }
+    storage.set('reflextv_dock_edge', edge);
+  }
+  positionDock(storage.get('reflextv_dock_edge', 'bottom'));
+
+  function nearestEdge(x, y){
+    const distances = { top: y, bottom: window.innerHeight - y, left: x, right: window.innerWidth - x };
+    return Object.entries(distances).sort((a,b)=>a[1]-b[1])[0][0];
+  }
+  function showZoneHint(x, y){
+    Object.values(zones).forEach(z=>z.classList.remove('show'));
+    zones[nearestEdge(x, y)].classList.add('show');
+  }
+
+  const handle = dock.querySelector('.drag-handle');
+  handle.addEventListener('mousedown', (e)=>{
+    dragging = true;
+    dock.classList.add('dragging');
+    const rect = dock.getBoundingClientRect();
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
+    dock.style.transform = 'none';
+    dock.style.left = rect.left + 'px';
+    dock.style.top = rect.top + 'px';
+    dock.style.bottom = dock.style.right = 'auto';
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', (e)=>{
+    if(!dragging) return;
+    dock.style.left = (e.clientX - offsetX) + 'px';
+    dock.style.top = (e.clientY - offsetY) + 'px';
+    showZoneHint(e.clientX, e.clientY);
+  });
+  document.addEventListener('mouseup', (e)=>{
+    if(!dragging) return;
+    dragging = false;
+    dock.classList.remove('dragging');
+    Object.values(zones).forEach(z=>z.classList.remove('show'));
+    positionDock(nearestEdge(e.clientX, e.clientY));
+  });
+
+  dock.querySelectorAll('.dock-item[data-dock-action]').forEach(btn=>{
+    btn.onclick = ()=>{
+      dock.querySelectorAll('.dock-item').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const action = btn.dataset.dockAction;
+      if(action === 'home') openCategoryFull('all');
+      else if(action === 'movies'){ const t = document.querySelector('.type-btn[data-type="movie"]'); if(t) t.click(); }
+      else if(action === 'series'){ const t = document.querySelector('.type-btn[data-type="series"]'); if(t) t.click(); }
+      else if(action === 'mylist') openMyListFull();
+      else if(action === 'search'){ document.getElementById('searchInput').scrollIntoView({behavior:'smooth'}); document.getElementById('searchInput').focus(); }
+    };
+  });
+})();
+
 
 // Each step wrapped independently: a failure in one (e.g. a corrupted
 // profile in storage) must never prevent the others -- especially the nav
@@ -5158,22 +5307,44 @@ document.getElementById('gateRequestBtn').onclick = async ()=>{
 };
 
 </script>
-<nav class="bottom-nav" id="bottomNav">
-  <button class="active" data-action="home">
+<div class="snap-zone" id="zoneTop"></div>
+<div class="snap-zone" id="zoneBottom"></div>
+<div class="snap-zone" id="zoneLeft"></div>
+<div class="snap-zone" id="zoneRight"></div>
+
+<div id="desktopDock" class="glass">
+  <div class="dock-item drag-handle" title="Drag to reposition">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="6" r="1.2" fill="currentColor"/><circle cx="15" cy="6" r="1.2" fill="currentColor"/><circle cx="9" cy="12" r="1.2" fill="currentColor"/><circle cx="15" cy="12" r="1.2" fill="currentColor"/><circle cx="9" cy="18" r="1.2" fill="currentColor"/><circle cx="15" cy="18" r="1.2" fill="currentColor"/></svg>
+  </div>
+  <button class="dock-item active" data-dock-action="home" title="Home" aria-label="Home">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
-    Home
   </button>
-  <button data-action="search">
+  <button class="dock-item" data-dock-action="movies" title="Movies" aria-label="Movies">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 9h4M17 9h4M3 15h4M17 15h4"/></svg>
+  </button>
+  <button class="dock-item" data-dock-action="series" title="Series" aria-label="Series">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8"/></svg>
+  </button>
+  <button class="dock-item" data-dock-action="mylist" title="My List" aria-label="My List">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4h12v17l-6-4-6 4z"/></svg>
+  </button>
+  <button class="dock-item" data-dock-action="search" title="Search" aria-label="Search">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-    Search
   </button>
-  <button data-action="mylist">
+</div>
+
+<nav class="bottom-nav" id="bottomNav">
+  <button class="active" data-action="home" title="Home" aria-label="Home">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+  </button>
+  <button data-action="search" title="Search" aria-label="Search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+  </button>
+  <button data-action="mylist" title="My List" aria-label="My List">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 000-7.8z"/></svg>
-    My List
   </button>
-  <button data-action="profile">
+  <button data-action="profile" title="Profile" aria-label="Profile">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0116 0v1"/></svg>
-    Profile
   </button>
 </nav>
 </body>
