@@ -3726,35 +3726,14 @@ document.addEventListener('keydown', e=>{
   if(e.key === 'Escape'){ closeTrailer(); closeTheater(); }
 });
 
+// My List no longer appears as a row on the homepage (Movies/Series/Anime
+// views) -- it's accessible only via the dock's dedicated My List
+// button/tab. This function is kept as a no-op (rather than removing all
+// its call sites) so it still safely cleans up the row if a leftover one
+// exists from before this change, and doesn't require touching every call site.
 function refreshMyListRow(){
   const existing = document.getElementById('row_My_List');
-  if(!myList.size){ if(existing) existing.remove(); return; }
-  const items = Array.from(myList.values());
-  const watching = (getCurrentProfile().watching) || {};
-  const newCount = items.filter(m=>{
-    if(m.Type !== 'series' || !m.LastEpisodeAirDate) return false;
-    const lastWatched = watching[m.imdbID] ? watching[m.imdbID].ts : 0;
-    return new Date(m.LastEpisodeAirDate).getTime() > lastWatched;
-  }).length;
-  const badge = newCount ? `<span class="new-ep-badge">${newCount} new</span>` : '';
-  const html = `
-    <div class="row" id="row_My_List">
-      <div class="row-head"><div class="row-title">My List <span class="count">${items.length}</span>${badge}</div></div>
-      <div class="row-slider">
-        <button class="slide-arrow left" aria-label="Scroll left">‹</button>
-        <div class="row-scroll">${items.map(cardHTML).join('')}</div>
-        <button class="slide-arrow right" aria-label="Scroll right">›</button>
-      </div>
-    </div>`;
-  if(existing){
-    existing.outerHTML = html;
-  }else if(mainEl.firstChild){
-    mainEl.insertAdjacentHTML('afterbegin', html);
-  }else{
-    mainEl.insertAdjacentHTML('beforeend', html);
-  }
-  wireRowControls('row_My_List');
-  attachCardHandlers();
+  if(existing) existing.remove();
 }
 
 // Populates the in-memory My List map from the active profile's saved ids.
