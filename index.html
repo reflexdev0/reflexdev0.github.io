@@ -1094,14 +1094,14 @@
   .strip-chip{
     display:flex; align-items:center; gap:8px; padding:8px 14px; border-radius:100px;
     font-size:12.5px; font-weight:600; color:var(--text); cursor:pointer;
-    background: var(--glass-fill); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    background: var(--glass-fill-strong);
     border:1px solid var(--glass-border);
   }
   .strip-chip .chip-label{ color:var(--muted); font-size:10.5px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; }
   .strip-btn{
     display:flex; align-items:center; gap:6px; padding:8px 15px; border-radius:100px;
     font-size:12.5px; font-weight:600; color:var(--text); cursor:pointer;
-    background: var(--glass-fill); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    background: var(--glass-fill-strong);
     border:1px solid var(--glass-border);
   }
   .strip-btn.on{ background:rgba(var(--red-rgb),0.18); border-color:rgba(var(--red-rgb),0.4); color:var(--red-light); }
@@ -1145,7 +1145,7 @@
   .ep-card.active .ep-thumb{ border-color:var(--red-light); box-shadow:0 0 0 1px rgba(var(--red-rgb),0.5); }
   .ep-thumb-num{
     position:absolute; top:7px; left:7px; font-family:var(--font-display); font-size:13px;
-    padding:2px 7px; border-radius:5px; background:rgba(5,5,6,0.55); backdrop-filter:blur(4px);
+    padding:2px 7px; border-radius:5px; background:rgba(5,5,6,0.75);
   }
   .ep-thumb-play{
     position:absolute; inset:0; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .15s;
