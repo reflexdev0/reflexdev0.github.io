@@ -1256,8 +1256,8 @@
 <link rel="dns-prefetch" href="https://player.videasy.to">
 <link rel="preconnect" href="https://vidlink.pro">
 <link rel="dns-prefetch" href="https://vidlink.pro">
-<link rel="preconnect" href="https://vidnest.fun">
-<link rel="dns-prefetch" href="https://vidnest.fun">
+<link rel="preconnect" href="https://megavid.buzz">
+<link rel="dns-prefetch" href="https://megavid.buzz">
 </head>
 <body>
 
@@ -1724,7 +1724,7 @@
         <p class="theater-plot" id="tPlot"></p>
         <div class="theater-cast" id="tCast"></div>
         <div class="provider-note">
-          Videasy works for everything -- start there. VidLink is a good alternate if Videasy is slow or stuttering. TryEmbed (Sub)/(Dub) is anime-only -- try it if Videasy's audio or subtitles aren't right for a particular anime. VidNest (Sub)/(Dub) is a second anime-only backup if TryEmbed isn't loading. Picture quality varies by title and server, so switch if one looks soft.
+          Videasy works for everything -- start there. VidLink is a good alternate if Videasy is slow or stuttering. TryEmbed (Sub)/(Dub) is anime-only -- try it if Videasy's audio or subtitles aren't right for a particular anime. Picture quality varies by title and server, so switch if one looks soft.
         </div>
       </div>
     </div>
@@ -1943,7 +1943,7 @@ function mapQueued(items, fn, priority){
 }
 
 /* ---------------- Servers (movie + tv url builders) ---------------- */
-// VidNest is anime-specific and uses AniList IDs (a different database than
+// TryEmbed is anime-specific and uses AniList IDs (a different database than
 // IMDb/TMDB), keyed per-season since AniList gives each season its own id.
 const ANILIST_MAP = {
   'tt12343534': { 1: 113415, 2: 145064, 3: 172463 }, // Jujutsu Kaisen (seasons 1-3)
@@ -2000,15 +2000,15 @@ async function tryEmbedUrl(ids, season, episode, mode, title){
   return `https://tryembed.us.cc/embed/anime/${anilistId}/${episode}/${mode}`;
 }
 
-// Reuses the exact same AniList-id resolution as tryEmbedUrl above --
-// VidNest uses the same [anilistId]/[episode]/[sub_or_dub] URL shape, just
-// a different domain, so no new lookup logic is needed.
-async function vidNestUrl(ids, season, episode, mode, title){
+// Reuses the same AniList-id resolution as tryEmbedUrl above -- MegaVid's
+// documented format is /ani/{anilistId}/{episode}/{sub|dub}, same shape,
+// different domain, so no new lookup logic is needed.
+async function megaVidUrl(ids, season, episode, mode, title){
   const entry = ANILIST_MAP[ids.imdb];
   let anilistId = entry && entry[season];
   if(!anilistId && title) anilistId = await resolveAnilistId(title, season);
   if(!anilistId) return null;
-  return `https://vidnest.fun/anime/${anilistId}/${episode}/${mode}`;
+  return `https://megavid.buzz/ani/${anilistId}/${episode}/${mode}`;
 }
 
 const SERVERS = [
@@ -2022,10 +2022,10 @@ const SERVERS = [
                              movie:(ids,title)=> tryEmbedUrl(ids,1,1,'sub',title), tv:(ids,s,e,title)=> tryEmbedUrl(ids,s,e,'sub',title), animeOnly:true, noSandbox:true },
   { name: 'TryEmbed (Dub)',  desc:'Anime only -- English dub',
                              movie:(ids,title)=> tryEmbedUrl(ids,1,1,'dub',title), tv:(ids,s,e,title)=> tryEmbedUrl(ids,s,e,'dub',title), animeOnly:true, noSandbox:true },
-  { name: 'VidNest (Sub)',   desc:'Anime only -- subtitled -- try this if TryEmbed is down',
-                             movie:(ids,title)=> vidNestUrl(ids,1,1,'sub',title), tv:(ids,s,e,title)=> vidNestUrl(ids,s,e,'sub',title), animeOnly:true, unsandboxed:true },
-  { name: 'VidNest (Dub)',   desc:'Anime only -- English dub -- try this if TryEmbed is down',
-                             movie:(ids,title)=> vidNestUrl(ids,1,1,'dub',title), tv:(ids,s,e,title)=> vidNestUrl(ids,s,e,'dub',title), animeOnly:true, unsandboxed:true },
+  { name: 'MegaVid (Sub)',   desc:'Anime only -- subtitled -- new, testing this one out',
+                             movie:(ids,title)=> megaVidUrl(ids,1,1,'sub',title), tv:(ids,s,e,title)=> megaVidUrl(ids,s,e,'sub',title), animeOnly:true, noSandbox:true },
+  { name: 'MegaVid (Dub)',   desc:'Anime only -- English dub -- new, testing this one out',
+                             movie:(ids,title)=> megaVidUrl(ids,1,1,'dub',title), tv:(ids,s,e,title)=> megaVidUrl(ids,s,e,'dub',title), animeOnly:true, noSandbox:true },
 ];
 
 /* ---------------- Curated catalogs ---------------- */
