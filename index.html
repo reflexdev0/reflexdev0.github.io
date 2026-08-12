@@ -1256,6 +1256,8 @@
 <link rel="dns-prefetch" href="https://player.videasy.to">
 <link rel="preconnect" href="https://vidlink.pro">
 <link rel="dns-prefetch" href="https://vidlink.pro">
+<link rel="preconnect" href="https://vidnest.fun">
+<link rel="dns-prefetch" href="https://vidnest.fun">
 </head>
 <body>
 
@@ -2021,9 +2023,9 @@ const SERVERS = [
   { name: 'TryEmbed (Dub)',  desc:'Anime only -- English dub',
                              movie:(ids,title)=> tryEmbedUrl(ids,1,1,'dub',title), tv:(ids,s,e,title)=> tryEmbedUrl(ids,s,e,'dub',title), animeOnly:true, noSandbox:true },
   { name: 'VidNest (Sub)',   desc:'Anime only -- subtitled -- try this if TryEmbed is down',
-                             movie:(ids,title)=> vidNestUrl(ids,1,1,'sub',title), tv:(ids,s,e,title)=> vidNestUrl(ids,s,e,'sub',title), animeOnly:true, noSandbox:true },
+                             movie:(ids,title)=> vidNestUrl(ids,1,1,'sub',title), tv:(ids,s,e,title)=> vidNestUrl(ids,s,e,'sub',title), animeOnly:true, unsandboxed:true },
   { name: 'VidNest (Dub)',   desc:'Anime only -- English dub -- try this if TryEmbed is down',
-                             movie:(ids,title)=> vidNestUrl(ids,1,1,'dub',title), tv:(ids,s,e,title)=> vidNestUrl(ids,s,e,'dub',title), animeOnly:true, noSandbox:true },
+                             movie:(ids,title)=> vidNestUrl(ids,1,1,'dub',title), tv:(ids,s,e,title)=> vidNestUrl(ids,s,e,'dub',title), animeOnly:true, unsandboxed:true },
 ];
 
 /* ---------------- Curated catalogs ---------------- */
