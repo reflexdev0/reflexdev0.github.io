@@ -4364,6 +4364,10 @@ function closeMenu(){
 document.getElementById('profileBtn').onclick = openMenu;
 document.getElementById('menuClose').onclick = closeMenu;
 document.getElementById('menuDragHandle').onclick = closeMenu;
+const SIDE_MENU_TAB_TITLES = {
+  profiles: "Who's Watching", appearance: 'Appearance', playback: 'Playback',
+  account: 'Account', devices: 'Devices', parental: 'Parental Lock', admin: 'Admin'
+};
 document.querySelectorAll('.side-menu-tab').forEach(tab=>{
   tab.onclick = ()=>{
     const container = tab.closest('.side-menu-tabbed-body');
@@ -4371,6 +4375,13 @@ document.querySelectorAll('.side-menu-tab').forEach(tab=>{
     container.querySelectorAll('.side-menu-panel').forEach(p=>p.classList.remove('active'));
     tab.classList.add('active');
     container.querySelector(`.side-menu-panel[data-panel="${tab.dataset.tab}"]`).classList.add('active');
+    // Update the modal's header title to match whichever tab is now active --
+    // it was left hardcoded to "Who's Watching" after the two settings
+    // panels were merged into this one modal, so switching to any other
+    // tab (like Appearance, where photo upload lives) never reflected that
+    // in the title, making it look like you were stuck on the wrong screen.
+    const headTitleEl = container.closest('.side-menu').querySelector('.side-menu-head span');
+    if(headTitleEl && SIDE_MENU_TAB_TITLES[tab.dataset.tab]) headTitleEl.textContent = SIDE_MENU_TAB_TITLES[tab.dataset.tab];
   };
 });
 menuOverlay.onclick = closeMenu;
@@ -5003,8 +5014,9 @@ async function loadAdminPanel(){
     const snap = await getDocs(collection(db, 'users'));
     const pendingCount = snap.docs.filter(d => d.data().approved === false && !d.data().declined).length;
     const declinedCount = snap.docs.filter(d => d.data().declined === true).length;
+    const approvedCount = snap.docs.filter(d => d.data().approved === true).length;
     cardsEl.innerHTML = `
-      <div class="admin-stat-card"><p class="stat-label">Signups</p><p class="stat-value">${snap.size}</p></div>
+      <div class="admin-stat-card"><p class="stat-label">Signups</p><p class="stat-value">${approvedCount}</p></div>
       <div class="admin-stat-card"><p class="stat-label">Pending</p><p class="stat-value">${pendingCount}</p></div>
       <div class="admin-stat-card"><p class="stat-label">Declined</p><p class="stat-value">${declinedCount}</p></div>
     `;
