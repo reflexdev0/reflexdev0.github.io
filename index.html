@@ -1376,7 +1376,7 @@
         </label>
       </div>
 
-      <div class="side-menu-panel active" data-panel="account">
+      <div class="side-menu-panel" data-panel="account">
         <div id="authLoggedOut" style="display:none;"></div>
         <div id="authLoggedIn">
           <div style="display:flex; align-items:center; gap:14px; padding:0 0 18px;">
@@ -1485,7 +1485,6 @@
       </div>
     </div>
     </div>
-  </div>
   <button class="see-all-btn" id="openSettingsBtn" style="width:calc(100% - 40px); margin:14px 20px;">⚙ Account &amp; Settings</button>
 </aside>
 
@@ -1723,7 +1722,7 @@
         <p class="theater-plot" id="tPlot"></p>
         <div class="theater-cast" id="tCast"></div>
         <div class="provider-note">
-          Videasy works for everything -- start there. VidLink is a good alternate if Videasy is slow or stuttering. TryEmbed (Sub)/(Dub) is anime-only -- try it if Videasy's audio or subtitles aren't right for a particular anime. Picture quality varies by title and server, so switch if one looks soft.
+          Videasy works for everything -- start there. VidLink is a good alternate if Videasy is slow or stuttering. TryEmbed (Sub)/(Dub) is anime-only -- try it if Videasy's audio or subtitles aren't right for a particular anime. VidNest (Sub)/(Dub) is a second anime-only backup if TryEmbed isn't loading. Picture quality varies by title and server, so switch if one looks soft.
         </div>
       </div>
     </div>
@@ -1999,6 +1998,17 @@ async function tryEmbedUrl(ids, season, episode, mode, title){
   return `https://tryembed.us.cc/embed/anime/${anilistId}/${episode}/${mode}`;
 }
 
+// Reuses the exact same AniList-id resolution as tryEmbedUrl above --
+// VidNest uses the same [anilistId]/[episode]/[sub_or_dub] URL shape, just
+// a different domain, so no new lookup logic is needed.
+async function vidNestUrl(ids, season, episode, mode, title){
+  const entry = ANILIST_MAP[ids.imdb];
+  let anilistId = entry && entry[season];
+  if(!anilistId && title) anilistId = await resolveAnilistId(title, season);
+  if(!anilistId) return null;
+  return `https://vidnest.fun/anime/${anilistId}/${episode}/${mode}`;
+}
+
 const SERVERS = [
   { name: 'Videasy',         desc:'Works for everything -- start here',
                              movie:(ids)=>`https://player.videasy.to/movie/${ids.tmdb}`,
@@ -2010,6 +2020,10 @@ const SERVERS = [
                              movie:(ids,title)=> tryEmbedUrl(ids,1,1,'sub',title), tv:(ids,s,e,title)=> tryEmbedUrl(ids,s,e,'sub',title), animeOnly:true, noSandbox:true },
   { name: 'TryEmbed (Dub)',  desc:'Anime only -- English dub',
                              movie:(ids,title)=> tryEmbedUrl(ids,1,1,'dub',title), tv:(ids,s,e,title)=> tryEmbedUrl(ids,s,e,'dub',title), animeOnly:true, noSandbox:true },
+  { name: 'VidNest (Sub)',   desc:'Anime only -- subtitled -- try this if TryEmbed is down',
+                             movie:(ids,title)=> vidNestUrl(ids,1,1,'sub',title), tv:(ids,s,e,title)=> vidNestUrl(ids,s,e,'sub',title), animeOnly:true, noSandbox:true },
+  { name: 'VidNest (Dub)',   desc:'Anime only -- English dub -- try this if TryEmbed is down',
+                             movie:(ids,title)=> vidNestUrl(ids,1,1,'dub',title), tv:(ids,s,e,title)=> vidNestUrl(ids,s,e,'dub',title), animeOnly:true, noSandbox:true },
 ];
 
 /* ---------------- Curated catalogs ---------------- */
@@ -5020,6 +5034,11 @@ async function loadAdminPanel(){
       <div class="admin-stat-card"><p class="stat-label">Pending</p><p class="stat-value">${pendingCount}</p></div>
       <div class="admin-stat-card"><p class="stat-label">Declined</p><p class="stat-value">${declinedCount}</p></div>
     `;
+    const requestsBadgeEl = document.getElementById('requestsBadge');
+    if(requestsBadgeEl){
+      requestsBadgeEl.textContent = pendingCount;
+      requestsBadgeEl.style.display = pendingCount > 0 ? 'inline-block' : 'none';
+    }
     const listCounts = {};
     snap.forEach(d=>{
       const data = d.data();
