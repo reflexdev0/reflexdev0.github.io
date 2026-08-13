@@ -3260,6 +3260,7 @@ const CARD_PREVIEW_DELAY = 700;
 let activeCardPreviewEl = null;
 function startCardPreview(previewEl, trailerKey){
   if(activeCardPreviewEl && activeCardPreviewEl !== previewEl) stopCardPreview(activeCardPreviewEl);
+  stopHeroTrailerPreview(); // don't let the hero's preview keep playing underneath a card preview too
   activeCardPreviewEl = previewEl;
   previewEl.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${trailerKey}?autoplay=1&mute=1&controls=0&loop=1&playlist=${trailerKey}&modestbranding=1&playsinline=1&disablekb=1&fs=0&iv_load_policy=3&rel=0" allow="autoplay; encrypted-media"></iframe>`;
   requestAnimationFrame(()=> previewEl.classList.add('show'));
@@ -3599,6 +3600,7 @@ function stopHeroTrailerPreview(){
     heroHoverTimer = setTimeout(()=>{
       const layer = document.getElementById('heroTrailerLayer');
       if(!layer || !currentHeroTrailerKey) return;
+      if(activeCardPreviewEl) stopCardPreview(activeCardPreviewEl); // don't let a card preview keep playing underneath the hero's preview too
       layer.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${currentHeroTrailerKey}?autoplay=1&mute=1&controls=0&loop=1&playlist=${currentHeroTrailerKey}&modestbranding=1&playsinline=1&disablekb=1&fs=0&iv_load_policy=3&rel=0" allow="autoplay; encrypted-media"></iframe>`;
       requestAnimationFrame(()=> layer.classList.add('show'));
     }, HOVER_DELAY);
