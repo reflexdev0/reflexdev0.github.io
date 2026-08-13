@@ -1133,6 +1133,17 @@
   /* ---------- Episode rail ---------- */
   .episode-rail{ padding:18px 0 4px; }
   .episode-rail .row-title{ font-family:var(--font-display); font-size:16px; letter-spacing:0.03em; margin:0 0 12px; padding:0 22px; color:var(--muted); text-transform:uppercase; }
+  .ep-scrubber-track{
+    position:relative; height:6px; margin:12px 22px 4px; border-radius:100px;
+    background:rgba(255,255,255,0.08); cursor:pointer;
+  }
+  .ep-scrubber-thumb{
+    position:absolute; top:0; bottom:0; left:0; border-radius:100px;
+    background:var(--red); min-width:24px; cursor:grab;
+    transition:background .15s ease;
+  }
+  .ep-scrubber-thumb:hover, .ep-scrubber-thumb.dragging{ background:var(--red-light); }
+  .ep-scrubber-thumb.dragging{ cursor:grabbing; }
   .ep-scroll{ display:flex; gap:12px; overflow-x:auto; padding:0 22px 6px; scrollbar-width:none; }
   .ep-scroll::-webkit-scrollbar{ display:none; }
   .ep-card{ flex:0 0 172px; cursor:pointer; }
@@ -1715,6 +1726,9 @@
     <div class="episode-rail" id="episodeRail" style="display:none;">
       <p class="row-title" id="episodeRailTitle">Episodes</p>
       <div class="ep-scroll" id="episodeRailScroll"></div>
+      <div class="ep-scrubber-track" id="episodeScrubberTrack" style="display:none;">
+        <div class="ep-scrubber-thumb" id="episodeScrubberThumb"></div>
+      </div>
     </div>
     <div class="theater-lower">
       <div class="theater-poster" id="tPoster"></div>
@@ -3787,7 +3801,83 @@ function renderEpisodeRail(list, season, current){
   // doesn't leave you looking at episode 1 with no indication where you are.
   const activeCard = scroll.querySelector('.ep-card.active');
   if(activeCard) activeCard.scrollIntoView({ behavior:'instant', inline:'center', block:'nearest' });
+  updateEpisodeScrubber();
 }
+
+// Drag-to-scrub bar below the episode rail -- useful for shows with many
+// episodes (One Piece, Jujutsu Kaisen, etc.) where scrolling one card at a
+// time would be tedious. Thumb width reflects how much of the full list is
+// currently visible; thumb position mirrors scroll progress.
+function updateEpisodeScrubber(){
+  const scroll = document.getElementById('episodeRailScroll');
+  const track = document.getElementById('episodeScrubberTrack');
+  const thumb = document.getElementById('episodeScrubberThumb');
+  if(!scroll || !track || !thumb) return;
+  const { scrollWidth, clientWidth, scrollLeft } = scroll;
+  // Nothing to scrub if the whole list already fits on screen.
+  if(scrollWidth <= clientWidth + 4){ track.style.display = 'none'; return; }
+  track.style.display = 'block';
+  const trackWidth = track.clientWidth;
+  const thumbWidth = Math.max(24, (clientWidth / scrollWidth) * trackWidth);
+  const maxScroll = scrollWidth - clientWidth;
+  const maxThumbLeft = trackWidth - thumbWidth;
+  const thumbLeft = maxScroll > 0 ? (scrollLeft / maxScroll) * maxThumbLeft : 0;
+  thumb.style.width = thumbWidth + 'px';
+  thumb.style.left = thumbLeft + 'px';
+}
+
+(function(){
+  const scroll = document.getElementById('episodeRailScroll');
+  const track = document.getElementById('episodeScrubberTrack');
+  const thumb = document.getElementById('episodeScrubberThumb');
+  if(!scroll || !track || !thumb) return;
+
+  scroll.addEventListener('scroll', updateEpisodeScrubber, { passive:true });
+  window.addEventListener('resize', updateEpisodeScrubber);
+
+  function scrollToThumbPosition(clientX){
+    const trackRect = track.getBoundingClientRect();
+    const thumbWidth = thumb.offsetWidth;
+    const maxThumbLeft = trackRect.width - thumbWidth;
+    let targetThumbLeft = clientX - trackRect.left - (thumbWidth / 2);
+    targetThumbLeft = Math.max(0, Math.min(maxThumbLeft, targetThumbLeft));
+    const maxScroll = scroll.scrollWidth - scroll.clientWidth;
+    scroll.scrollLeft = maxThumbLeft > 0 ? (targetThumbLeft / maxThumbLeft) * maxScroll : 0;
+  }
+
+  let dragging = false;
+  thumb.addEventListener('mousedown', (e)=>{
+    dragging = true;
+    thumb.classList.add('dragging');
+    e.preventDefault();
+  });
+  thumb.addEventListener('touchstart', ()=>{ dragging = true; thumb.classList.add('dragging'); }, { passive:true });
+
+  document.addEventListener('mousemove', (e)=>{
+    if(!dragging) return;
+    scrollToThumbPosition(e.clientX);
+  });
+  document.addEventListener('touchmove', (e)=>{
+    if(!dragging) return;
+    scrollToThumbPosition(e.touches[0].clientX);
+  }, { passive:true });
+
+  function stopDrag(){
+    if(!dragging) return;
+    dragging = false;
+    thumb.classList.remove('dragging');
+  }
+  document.addEventListener('mouseup', stopDrag);
+  document.addEventListener('touchend', stopDrag);
+
+  // Clicking anywhere on the track (not just the thumb) jumps straight there --
+  // standard scrubber-bar behavior, faster than dragging from wherever the
+  // thumb currently sits.
+  track.addEventListener('click', (e)=>{
+    if(e.target === thumb) return; // avoid double-handling a click that's really the end of a drag
+    scrollToThumbPosition(e.clientX);
+  });
+})();
 
 /* ---------------- Season picker panel ---------------- */
 const seasonOverlay = document.getElementById('seasonOverlay');
