@@ -3261,7 +3261,7 @@ let activeCardPreviewEl = null;
 function startCardPreview(previewEl, trailerKey){
   if(activeCardPreviewEl && activeCardPreviewEl !== previewEl) stopCardPreview(activeCardPreviewEl);
   activeCardPreviewEl = previewEl;
-  previewEl.innerHTML = `<iframe src="https://www.youtube.com/embed/${trailerKey}?autoplay=1&mute=1&controls=0&loop=1&playlist=${trailerKey}&modestbranding=1&playsinline=1" allow="autoplay; encrypted-media"></iframe>`;
+  previewEl.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${trailerKey}?autoplay=1&mute=1&controls=0&loop=1&playlist=${trailerKey}&modestbranding=1&playsinline=1&disablekb=1&fs=0&iv_load_policy=3&rel=0" allow="autoplay; encrypted-media"></iframe>`;
   requestAnimationFrame(()=> previewEl.classList.add('show'));
 }
 function stopCardPreview(previewEl){
@@ -3599,7 +3599,7 @@ function stopHeroTrailerPreview(){
     heroHoverTimer = setTimeout(()=>{
       const layer = document.getElementById('heroTrailerLayer');
       if(!layer || !currentHeroTrailerKey) return;
-      layer.innerHTML = `<iframe src="https://www.youtube.com/embed/${currentHeroTrailerKey}?autoplay=1&mute=1&controls=0&loop=1&playlist=${currentHeroTrailerKey}&modestbranding=1&playsinline=1" allow="autoplay; encrypted-media"></iframe>`;
+      layer.innerHTML = `<iframe src="https://www.youtube-nocookie.com/embed/${currentHeroTrailerKey}?autoplay=1&mute=1&controls=0&loop=1&playlist=${currentHeroTrailerKey}&modestbranding=1&playsinline=1&disablekb=1&fs=0&iv_load_policy=3&rel=0" allow="autoplay; encrypted-media"></iframe>`;
       requestAnimationFrame(()=> layer.classList.add('show'));
     }, HOVER_DELAY);
   });
