@@ -555,10 +555,22 @@
   .pp-stat .num{ font-family:var(--font-display); font-size:26px; line-height:1; }
   .pp-stat .lbl{ font-size:10.5px; color:var(--muted); margin-top:5px; }
   .pp-rank-chip{ font-size:10.5px; font-weight:800; padding:3px 9px; border-radius:100px; background:rgba(var(--gold-rgb),0.15); color:var(--gold); letter-spacing:0.03em; text-transform:uppercase; }
+  .pp-rank-chip-admin{ background:rgba(var(--red-rgb),0.18); color:var(--red-light); }
   #ppFollowBtn.active{ background:rgba(var(--red-rgb),0.14); border-color:rgba(var(--red-rgb),0.4); color:var(--red-light); }
   .pp-status-line{ display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--muted); }
   .pp-status-dot{ width:7px; height:7px; border-radius:50%; background:#3ecf7e; box-shadow:0 0 8px rgba(62,207,126,0.7); }
   .pp-badge-grid{ display:flex; flex-wrap:wrap; gap:10px; }
+  .pp-showcase-row{ display:flex; gap:10px; overflow-x:auto; padding-bottom:4px; }
+  .pp-showcase-item{ flex:0 0 76px; aspect-ratio:2/3; border-radius:8px; overflow:hidden; background:var(--surface-2); }
+  .pp-showcase-item img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .showcase-custom-badge{
+    display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:100px;
+    background:var(--glass-fill); border:1px solid var(--glass-border); font-size:12px;
+  }
+  .showcase-custom-badge button{
+    background:none; border:none; color:var(--muted); cursor:pointer; font-size:11px; padding:0; line-height:1;
+  }
+  .showcase-custom-badge button:hover{ color:var(--red-light); }
   .pp-badge{ width:52px; height:52px; border-radius:14px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.05); border:1px solid var(--glass-border); }
   .pp-badge svg{ width:22px; height:22px; }
   .side-stat-row{ display:flex; align-items:center; justify-content:space-between; font-size:12.5px; padding:8px 0; border-bottom:1px solid var(--glass-border); }
@@ -597,6 +609,12 @@
     display:flex; align-items:center; justify-content:center; cursor:pointer; line-height:1;
   }
   .sidebar-profile-delete:hover{color:var(--red-light); border-color:var(--red-light);}
+  .sidebar-profile-rename{
+    position:absolute; top:-4px; left:-4px; width:18px; height:18px; border-radius:50%;
+    background:var(--bg2); border:1px solid var(--line); color:var(--muted); font-size:10px;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; line-height:1;
+  }
+  .sidebar-profile-rename:hover{color:var(--red-light); border-color:var(--red-light);}
   .admin-list-row{
     display:flex; align-items:center; justify-content:space-between; gap:8px;
     font-size:12px; padding:7px 0; border-bottom:1px solid var(--line);
@@ -1722,6 +1740,15 @@
   <div id="recommendModalList"></div>
 </div>
 
+<div id="showcaseModalOverlay" class="menu-overlay"></div>
+<div id="showcaseModal" class="confirm-dialog" style="width:min(340px, 88vw); text-align:left;">
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+    <span style="font-family:var(--font-display); font-size:18px; letter-spacing:0.02em;">Add To Showcase</span>
+    <button class="theater-close" id="showcaseModalClose" aria-label="Close" style="position:static;">✕</button>
+  </div>
+  <div id="showcaseModalList"></div>
+</div>
+
 <div class="menu-overlay" id="mobileBrowseOverlay"></div>
 <aside class="side-menu mobile-browse-sheet" id="mobileBrowseSheet">
   <div class="drag-handle" id="mobileBrowseDragHandle"><span></span></div>
@@ -1921,6 +1948,7 @@
       <button class="strip-btn" id="trailerBtn" style="display:none;">🎬 Trailer</button>
       <button class="strip-btn" id="myListBtn">+ My List</button>
       <button class="strip-btn" id="recommendBtn">👥 Recommend</button>
+      <button class="strip-btn" id="showcaseBtn">🏆 Showcase</button>
       <button class="strip-btn" id="reportServerBtn" title="Let the admin know this server isn't working">⚑ Report</button>
       <button class="strip-btn" id="subtitleSearchBtn" title="Search for subtitle files">💬 Subtitles</button>
       <button class="strip-btn" id="pipToolbarBtn" title="Picture-in-Picture" style="display:none;">🗗 PiP</button>
@@ -2370,8 +2398,8 @@ const SERIES_CATALOG = {
   "Popular Series": ["tt0903747","tt3032476","tt0306414","tt4574334","tt1190634",
                      "tt2442560","tt3581920","tt8111088","tt0944947","tt7366338",
                      "tt2356777","tt1567254","tt6439752"],
-  "K-Drama & Anime Series": ["tt6468322","tt10919420","tt13406094","tt2560140",
-                             "tt9335498","tt0877057","tt0331389","tt0388629"]
+  "K-Drama": ["tt6468322","tt10919420","tt13406094","tt2560140",
+                             "tt9335498","tt0877057","tt0331389"]
 };
 
 const NAV = {
@@ -2385,7 +2413,7 @@ const NAV = {
   series: [
     ["all","Home"],["Action & Adventure","Action"],["Sci-Fi & Fantasy","Sci-Fi"],["Drama","Drama"],
     ["Mystery","Mystery"],["Crime","Crime"],["Comedy","Comedy"],["Animation","Animation"],["Family","Family"],
-    ["Popular Series","Popular"],["K-Drama & Anime Series","K-Drama/Anime"]
+    ["Popular Series","Popular"],["K-Drama","K-Drama"]
   ]
 };
 
@@ -2531,6 +2559,7 @@ function pushPublicProfileToCloud(){
       watchlistCount: (profile.myListIds || []).length,
       watchedCount: Object.keys(profile.watching || {}).length,
       completionRate,
+      isAdminAccount: currentUser.email === ADMIN_EMAIL,
       updatedAt: profile.updatedAt || 0
     };
     if(isNew){
@@ -2987,10 +3016,12 @@ async function hydrateLiveCategoryRow(rowId, discoverQuery){
   }
 }
 
-// For categories needing two separate TMDB filters combined (K-Drama & Anime
-// Series = Korean-origin dramas of any genre, PLUS Japanese anime
-// specifically) -- fetches a random page from each query and interleaves
+// For categories needing two separate TMDB filters combined (e.g. two
+// different origin/genre combinations that can't be expressed as one
+// discover query) -- fetches a random page from each query and interleaves
 // the results, rather than forcing one single discover call to cover both.
+// Currently unused (see TMDB_MERGED_QUERY above) but kept in case a future
+// category needs it.
 function createMergedCategoryRowShell(title, queries){
   const rowId = 'row_'+title.replace(/[^a-zA-Z0-9]/g,'_');
   mainEl.insertAdjacentHTML('beforeend', `
@@ -3140,6 +3171,7 @@ const TMDB_DISCOVER_QUERY = {
     'Cartoons & Family': 'with_genres=16,10751',
   },
   series: {
+    'K-Drama': 'with_origin_country=KR',
     // vote_count.gte is a near-universal, practically-always-true filter --
     // there's no genre/origin restriction here, just letting TMDB's own
     // popularity sort do the real work, same as it does for every other
@@ -3148,14 +3180,13 @@ const TMDB_DISCOVER_QUERY = {
   }
 };
 
-// A small number of categories genuinely don't map to a single TMDB filter --
-// "K-Drama & Anime Series" means Korean dramas of any genre PLUS Japanese
-// anime specifically, which is two different origin+genre combinations, not
-// one. These get fetched as two separate queries and merged together.
+// A small number of categories genuinely don't map to a single TMDB filter.
+// (None currently need this -- kept as an empty extension point in case a
+// future category genuinely needs to combine two separate origin/genre
+// queries the way K-Drama & Anime Series used to, before anime was removed
+// from it to stop duplicating the dedicated Anime tab's content.)
 const TMDB_MERGED_QUERY = {
-  series: {
-    'K-Drama & Anime Series': ['with_origin_country=KR', 'with_genres=16&with_origin_country=JP'],
-  }
+  series: {},
 };
 
 let catState = null; // tracks pagination for the current full-category view
@@ -3292,9 +3323,10 @@ async function loadMoreFromTmdb(){
   if(!statusEl || !grid) return;
   statusEl.textContent = 'Loading more…';
 
-  // Merged categories (like K-Drama & Anime Series) alternate between their
-  // sub-queries, each with its own independent page counter, rather than
-  // sharing a single query/page like every other live category does.
+  // Merged categories (currently none in use -- see TMDB_MERGED_QUERY)
+  // alternate between their sub-queries, each with its own independent
+  // page counter, rather than sharing a single query/page like every other
+  // live category does.
   let query, currentPage;
   if(catState.mergedQueries){
     const qi = catState.queryIndex % catState.mergedQueries.length;
@@ -3999,6 +4031,11 @@ function renderFilmStrip(){
   const wrap = document.getElementById('filmstripWrap');
   const track = document.getElementById('filmstripTrack');
   if(!heroFrameData.length){ wrap.style.display = 'none'; return; }
+  // Never force this visible while the hero itself is deliberately hidden
+  // (e.g. on the Social tab) -- the background auto-rotate timer keeps
+  // calling this every 7 seconds regardless of which page is showing, and
+  // without this check it would silently undo hideHero()'s work.
+  if(document.getElementById('hero').style.display === 'none') return;
   wrap.style.display = 'block';
   if(!track.dataset.built){
     // Sprocket hole count doesn't need to change per-render -- build once.
@@ -4486,6 +4523,78 @@ function closeRecommendModal(){
 document.getElementById('recommendModalClose').onclick = closeRecommendModal;
 document.getElementById('recommendModalOverlay').onclick = closeRecommendModal;
 
+/* ---------------- Showcase (Backloggd-style top lists) ---------------- */
+const SHOWCASE_MAX_LISTS = 8;
+const SHOWCASE_MAX_PER_LIST = 12;
+async function openShowcaseModal(imdbId, m){
+  if(!currentUser){ toast('Log in to build a showcase.'); return; }
+  const listEl = document.getElementById('showcaseModalList');
+  listEl.innerHTML = `<p class="admin-list-empty">Loading your lists…</p>`;
+  document.getElementById('showcaseModalOverlay').classList.add('confirm-active');
+  document.getElementById('showcaseModal').classList.add('show');
+  let lists = {};
+  try{
+    const snap = await getDoc(doc(db,'publicProfiles',currentUser.uid));
+    lists = (snap.exists() && snap.data().showcaseLists) || {};
+  }catch(e){ /* start from empty if this fails to load */ }
+
+  const render = ()=>{
+    const names = Object.keys(lists);
+    const rowsHtml = names.map(name=>{
+      const inList = (lists[name]||[]).some(t => t.imdbId === imdbId);
+      return `
+        <button type="button" class="server-row ${inList?'active':''}" data-list="${escapeHtml(name)}">
+          <span class="server-radio"></span>
+          <span class="server-row-info"><span class="name" style="display:block;">${escapeHtml(name)}</span><span class="sub" style="display:block;">${(lists[name]||[]).length}/${SHOWCASE_MAX_PER_LIST} titles${inList ? ' -- tap to remove' : ' -- tap to add'}</span></span>
+        </button>`;
+    }).join('');
+    const newListHtml = names.length < SHOWCASE_MAX_LISTS ? `
+      <button type="button" class="server-row" id="showcaseNewListBtn">
+        <span class="server-radio"></span>
+        <span class="server-row-info"><span class="name" style="display:block;">+ New list</span></span>
+      </button>` : `<p class="admin-list-empty">Max ${SHOWCASE_MAX_LISTS} lists -- remove one to add another.</p>`;
+    listEl.innerHTML = (names.length ? rowsHtml : `<p class="admin-list-empty">No lists yet -- create your first one below.</p>`) + newListHtml;
+
+    listEl.querySelectorAll('[data-list]').forEach(row=>{
+      row.onclick = async ()=>{
+        const name = row.dataset.list;
+        const inList = (lists[name]||[]).some(t => t.imdbId === imdbId);
+        if(inList){
+          lists[name] = lists[name].filter(t => t.imdbId !== imdbId);
+        }else{
+          if((lists[name]||[]).length >= SHOWCASE_MAX_PER_LIST){ toast(`That list is full (max ${SHOWCASE_MAX_PER_LIST}).`); return; }
+          lists[name] = [...(lists[name]||[]), { imdbId, title: m.Title, poster: poster(m.Poster) }];
+        }
+        try{
+          await setDoc(doc(db,'publicProfiles',currentUser.uid), { showcaseLists: lists }, { merge:true });
+          toast(inList ? `Removed from ${name}.` : `Added to ${name}.`);
+          render();
+        }catch(e){ toast('Could not update your showcase -- try again.'); }
+      };
+    });
+    const newBtn = document.getElementById('showcaseNewListBtn');
+    if(newBtn) newBtn.onclick = async ()=>{
+      const name = prompt('Name this list (e.g. "Top Movies", "Comfort Watches"):');
+      if(!name || !name.trim()) return;
+      const trimmed = name.trim().slice(0,40);
+      if(lists[trimmed]){ toast('You already have a list with that name.'); return; }
+      lists[trimmed] = [{ imdbId, title: m.Title, poster: poster(m.Poster) }];
+      try{
+        await setDoc(doc(db,'publicProfiles',currentUser.uid), { showcaseLists: lists }, { merge:true });
+        toast(`Created "${trimmed}" and added this title.`);
+        render();
+      }catch(e){ toast('Could not create that list -- try again.'); }
+    };
+  };
+  render();
+}
+function closeShowcaseModal(){
+  document.getElementById('showcaseModalOverlay').classList.remove('confirm-active');
+  document.getElementById('showcaseModal').classList.remove('show');
+}
+document.getElementById('showcaseModalClose').onclick = closeShowcaseModal;
+document.getElementById('showcaseModalOverlay').onclick = closeShowcaseModal;
+
 document.getElementById('seasonPickerBtn').onclick = openSeasonModal;
 document.getElementById('seasonModalClose').onclick = closeSeasonModal;
 document.getElementById('seasonModalOverlay').onclick = closeSeasonModal;
@@ -4642,11 +4751,15 @@ async function openTheater(id, fromPopstate){
   };
 
   const recommendBtn = document.getElementById('recommendBtn');
+  const showcaseBtn = document.getElementById('showcaseBtn');
   if(getCurrentProfile().kidsMode){
     recommendBtn.style.display = 'none';
+    showcaseBtn.style.display = 'none';
   }else{
     recommendBtn.style.display = 'inline-flex';
     recommendBtn.onclick = ()=> openRecommendModal(id, m);
+    showcaseBtn.style.display = 'inline-flex';
+    showcaseBtn.onclick = ()=> openShowcaseModal(id, m);
   }
 
   document.getElementById('reportServerBtn').onclick = async ()=>{
@@ -5038,7 +5151,7 @@ function buildNav(){
   const decadeItems = restItems.filter(([cat]) => DECADE_PATTERN.test(cat));
   const moreItems = restItems.filter(([cat]) => !genreIds[cat] && !DECADE_PATTERN.test(cat));
   const panel = document.getElementById('browseDropdownPanel');
-  const SPECIAL_TAGS = { 'Star Wars':'SAGA', 'Anime':'LIVE', 'K-Drama & Anime Series':'LIVE' };
+  const SPECIAL_TAGS = { 'Star Wars':'SAGA', 'Anime':'LIVE', 'K-Drama':'LIVE' };
   panel.innerHTML = `
     <div>
       <div class="nav-col-title">Genres</div>
@@ -5229,6 +5342,7 @@ function renderProfileMenu(){
   list.innerHTML = profiles.map(p => `
     <button class="sidebar-profile ${p.id===currentId?'active':''}" data-id="${p.id}">
       ${profiles.length > 1 ? `<span class="sidebar-profile-delete" data-del="${p.id}" title="Delete profile">✕</span>` : ''}
+      <span class="sidebar-profile-rename" data-rename="${p.id}" title="Rename profile">✎</span>
       <div class="sidebar-profile-circle" style="${p.avatar ? `background-image:url(${p.avatar})` : `background:${p.color}`}">${p.avatar ? '' : escapeHtml((p.name||'?').charAt(0).toUpperCase())}</div>
       <span class="sidebar-profile-name">${escapeHtml(p.name)}</span>
     </button>`).join('') + `
@@ -5269,6 +5383,29 @@ function renderProfileMenu(){
       renderProfileMenu();
       syncMyListFromProfile();
       refreshContinueWatchingRow();
+    };
+  });
+  list.querySelectorAll('.sidebar-profile-rename').forEach(btn=>{
+    btn.onclick = (e)=>{
+      e.stopPropagation();
+      const profiles = loadProfiles();
+      const target = profiles.find(p => p.id === btn.dataset.rename);
+      if(!target) return;
+      const name = prompt('New profile name?', target.name || '');
+      if(!name || !name.trim()) return;
+      const trimmed = name.trim();
+      const isReservedName = ['admin','administrator'].includes(trimmed.toLowerCase());
+      if(isReservedName && (!currentUser || currentUser.email !== ADMIN_EMAIL)){
+        toast('That name is reserved for the site admin.');
+        return;
+      }
+      target.name = trimmed;
+      target.updatedAt = Date.now();
+      saveProfiles(profiles);
+      updateProfileButtonFace();
+      renderProfileMenu();
+      if(getCurrentProfileId() === btn.dataset.rename) pushPublicProfileToCloud(); // keep the social/public name in sync if renaming the active profile
+      toast('Profile renamed.');
     };
   });
   document.getElementById('addProfileBtn').onclick = ()=>{
@@ -5756,7 +5893,20 @@ onAuthStateChanged(auth, async (user)=>{
   const userDocRef = doc(db, 'users', user.uid);
   let userSnapForHeal;
   try{ userSnapForHeal = await getDoc(userDocRef); }catch(e){ userSnapForHeal = null; }
-  if(user.email !== ADMIN_EMAIL && userSnapForHeal && !userSnapForHeal.exists()){
+  if(userSnapForHeal && !userSnapForHeal.exists()){
+    if(user.email === ADMIN_EMAIL){
+      // The admin's own account doc was missing entirely -- this left them
+      // permanently absent from their own admin panel's user list (and
+      // unable to use the verify-badge toggle, since both are built from
+      // this same collection). Created pre-approved, not pending, since
+      // the admin was never meant to go through the request flow.
+      try{
+        await setDoc(userDocRef, {
+          approved:true, email:user.email, displayName:user.displayName || '',
+          requestedAt:Date.now(), myListIds:[], watching:{}
+        });
+      }catch(e){ console.warn('Admin self-heal write failed:', e); }
+    }else{
     // Their account exists in Firebase Auth, but the request write that
     // should have happened at signup never actually landed in Firestore --
     // this self-heals it instead of leaving them stuck invisible forever.
@@ -5766,6 +5916,7 @@ onAuthStateChanged(auth, async (user)=>{
         requestedAt:Date.now(), myListIds:[], watching:{}
       });
     }catch(e){ console.warn('Self-heal request write failed:', e); }
+    }
   }
 
   const approved = await isApprovedUser(user);
@@ -6216,6 +6367,7 @@ document.getElementById('avatarInput').addEventListener('change', (e)=>{
       updateCurrentProfile(p => { p.avatar = ev.target.result; });
       updateProfileButtonFace();
       renderProfileMenu();
+      if(document.getElementById('myProfileCard')) renderMyProfileCard();
     };
     reader.readAsDataURL(file);
     return;
@@ -6237,6 +6389,7 @@ document.getElementById('avatarInput').addEventListener('change', (e)=>{
       updateCurrentProfile(p => { p.avatar = dataUrl; });
       updateProfileButtonFace();
       renderProfileMenu();
+      if(document.getElementById('myProfileCard')) renderMyProfileCard();
     };
     img.src = ev.target.result;
   };
@@ -6295,11 +6448,24 @@ async function openSocialFull(){
   hideHero();
   document.getElementById('searchInput').value = '';
   document.querySelectorAll('#navLinks a').forEach(a=>a.classList.remove('active'));
+  const isKidsViewer = !!getCurrentProfile().kidsMode;
   mainEl.innerHTML = `
+    ${currentUser ? `
+    <div class="row">
+      <div class="row-head"><div class="row-title">My Profile</div></div>
+      <div style="padding:0 46px;"><div class="pp-card glass" id="myProfileCard"></div></div>
+    </div>` : ''}
+    ${!isKidsViewer ? `
+    <div class="row">
+      <div class="row-head"><div class="row-title">Friend Activity</div></div>
+      <div style="padding:0 46px;"><div id="socialFeedList" class="pp-card glass"><p class="admin-list-empty">Loading…</p></div></div>
+    </div>` : ''}
     <div class="row">
       <div class="row-head"><div class="row-title">Social <span class="count" id="socialCount">0</span></div></div>
       <div class="social-grid" id="socialGrid">${skeletons(8)}</div>
     </div>`;
+  if(currentUser) renderMyProfileCard();
+  if(!isKidsViewer) populateFriendActivityFeed();
   const grid = document.getElementById('socialGrid');
   try{
     const snap = await getDocs(collection(db, 'publicProfiles'));
@@ -6333,9 +6499,113 @@ async function openSocialFull(){
   }
 }
 
+// Firestore's "in" operator caps at 30 values -- more than enough for a
+// small, personal-use site's follow counts, but worth knowing if this ever
+// needs to scale past that.
+const CUSTOM_BADGE_MAX = 6;
+function renderMyProfileCard(){
+  const card = document.getElementById('myProfileCard');
+  if(!card) return;
+  const profile = getCurrentProfile();
+  const avatarHtml = profile.avatar
+    ? `<img src="${profile.avatar}" alt="" style="width:64px;height:64px;border-radius:50%;object-fit:cover;cursor:pointer;" id="myProfileAvatarBtn" />`
+    : `<div class="ph" style="width:64px;height:64px;border-radius:50%;cursor:pointer;" id="myProfileAvatarBtn">${escapeHtml((profile.name||'?').charAt(0).toUpperCase())}</div>`;
+  card.innerHTML = `
+    <div style="display:flex; gap:14px; align-items:center; margin-bottom:16px;">
+      ${avatarHtml}
+      <div style="flex:1;">
+        <div style="font-family:var(--font-display); font-size:17px;">${escapeHtml(profile.name||'Unnamed')}</div>
+        <button class="settings-link-btn" id="myProfileViewBtn" style="padding:0; margin-top:2px;">View my public profile →</button>
+      </div>
+    </div>
+    <textarea id="myProfileBioInput" class="auth-input" maxlength="160" rows="2" placeholder="Say something about yourself" style="resize:vertical; width:100%; margin-bottom:16px;">${escapeHtml(profile.bio||'')}</textarea>
+    <p class="pp-card-title">My Badges</p>
+    <div id="myProfileBadgeList" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;"><p class="admin-list-empty">Loading…</p></div>
+    <div style="display:flex; gap:6px;">
+      <input type="text" id="myProfileBadgeIcon" class="auth-input" placeholder="🏆" maxlength="4" style="width:52px; flex-shrink:0; text-align:center;" />
+      <input type="text" id="myProfileBadgeLabel" class="auth-input" placeholder="Badge name" maxlength="24" style="flex:1;" />
+      <button class="btn btn-ghost" id="myProfileBadgeAddBtn">Add</button>
+    </div>`;
+
+  document.getElementById('myProfileAvatarBtn').onclick = ()=> document.getElementById('avatarInput').click();
+  document.getElementById('myProfileViewBtn').onclick = ()=> document.getElementById('viewMyProfileBtn').click();
+  const bioInput = document.getElementById('myProfileBioInput');
+  bioInput.onblur = ()=>{
+    if(bioInput.value !== (getCurrentProfile().bio || '')) updateCurrentProfile(p => { p.bio = bioInput.value; });
+  };
+
+  refreshMyBadgeList();
+  document.getElementById('myProfileBadgeAddBtn').onclick = async ()=>{
+    if(!currentUser) return;
+    const iconInput = document.getElementById('myProfileBadgeIcon');
+    const labelInput = document.getElementById('myProfileBadgeLabel');
+    const icon = iconInput.value.trim() || '🏆';
+    const label = labelInput.value.trim();
+    if(!label){ toast('Give the badge a name.'); return; }
+    try{
+      const snap = await getDoc(doc(db,'publicProfiles',currentUser.uid));
+      const existing = (snap.exists() && snap.data().customBadges) || [];
+      if(existing.length >= CUSTOM_BADGE_MAX){ toast(`Max ${CUSTOM_BADGE_MAX} custom badges.`); return; }
+      const updated = [...existing, { icon, label }];
+      await setDoc(doc(db,'publicProfiles',currentUser.uid), { customBadges: updated }, { merge:true });
+      iconInput.value = ''; labelInput.value = '';
+      refreshMyBadgeList();
+    }catch(e){ toast('Could not add that badge -- try again.'); }
+  };
+}
+async function refreshMyBadgeList(){
+  const el = document.getElementById('myProfileBadgeList');
+  if(!el || !currentUser) return;
+  try{
+    const snap = await getDoc(doc(db,'publicProfiles',currentUser.uid));
+    const badges = (snap.exists() && snap.data().customBadges) || [];
+    if(!document.getElementById('myProfileBadgeList')) return; // navigated away
+    el.innerHTML = badges.length ? badges.map((b,i)=>`
+      <span class="showcase-custom-badge">${b.icon} ${escapeHtml(b.label)}<button type="button" data-idx="${i}" title="Remove">✕</button></span>
+    `).join('') : `<p class="admin-list-empty">No custom badges yet.</p>`;
+    el.querySelectorAll('[data-idx]').forEach(btn=>{
+      btn.onclick = async ()=>{
+        const updated = badges.filter((_,i)=> i !== Number(btn.dataset.idx));
+        try{
+          await setDoc(doc(db,'publicProfiles',currentUser.uid), { customBadges: updated }, { merge:true });
+          refreshMyBadgeList();
+        }catch(e){ toast('Could not remove that badge -- try again.'); }
+      };
+    });
+  }catch(e){
+    el.innerHTML = `<p class="admin-list-empty">Couldn't load badges.</p>`;
+  }
+}
+
+async function populateFriendActivityFeed(){
+  const el = document.getElementById('socialFeedList');
+  if(!el) return;
+  if(!currentUser){ el.innerHTML = `<p class="admin-list-empty">Log in to see friend activity.</p>`; return; }
+  try{
+    const followingSnap = await getDocs(query(collection(db,'follows'), where('followerUid','==',currentUser.uid)));
+    const followingUids = followingSnap.docs.map(d => d.data().followingUid).slice(0,30);
+    if(!followingUids.length){
+      el.innerHTML = `<p class="admin-list-empty">Follow people from the grid below to see their activity here.</p>`;
+      return;
+    }
+    const snap = await getDocs(query(collection(db,'activity'), where('uid','in',followingUids), orderBy('ts','desc'), limit(20)));
+    if(!document.getElementById('socialFeedList')) return; // navigated away
+    const ACTIVITY_VERBS = { started_watching: 'started watching', added_watchlist: 'added to their watchlist', reviewed: 'reviewed' };
+    const entries = snap.docs.map(d => d.data());
+    el.innerHTML = entries.length ? entries.map(a => `
+      <div class="activity-item">
+        <div class="activity-text"><b>${escapeHtml(a.authorName||'Someone')}</b> ${ACTIVITY_VERBS[a.type] || a.type} <b>${escapeHtml(a.title||'a title')}</b>${a.type==='reviewed' && a.rating ? ` — ${a.rating}★` : ''}</div>
+        <div class="activity-time">${a.ts ? new Date(a.ts).toLocaleDateString() : ''}</div>
+      </div>`).join('') : `<p class="admin-list-empty">No recent activity from people you follow yet.</p>`;
+  }catch(e){
+    el.innerHTML = `<p class="admin-list-empty">Couldn't load friend activity right now.</p>`;
+  }
+}
+
 // Purely cosmetic, computed client-side from data already on the public
 // profile -- no new stored field, no new query.
-function getRankTier(watchedCount){
+function getRankTier(watchedCount, isAdminAccount){
+  if(isAdminAccount) return 'Admin';
   const n = watchedCount || 0;
   if(n >= 150) return 'Cinephile';
   if(n >= 50) return 'Bingewatcher';
@@ -6374,13 +6644,24 @@ function openUserProfile(p){
   const onlineCard = isOnline ? `<div class="pp-card glass"><div class="pp-status-line"><span class="pp-status-dot"></span>Online now</div></div>` : '';
 
   const badges = getTasteBadges(p);
-  const badgesCard = badges.length ? `
+  const customBadges = p.customBadges || [];
+  const badgesCard = (badges.length || customBadges.length) ? `
     <div class="pp-card glass">
       <p class="pp-card-title">Taste Badges</p>
       <div class="pp-badge-grid">
         ${badges.map(b => `<div class="pp-badge" title="${escapeHtml(b.label)}"><svg viewBox="0 0 24 24" fill="none" stroke="var(--profile-accent, var(--red-light))" stroke-width="2"><path d="${b.icon}"/></svg></div>`).join('')}
+        ${customBadges.map(b => `<div class="pp-badge" title="${escapeHtml(b.label)}" style="font-size:20px;">${b.icon}</div>`).join('')}
       </div>
     </div>` : '';
+
+  const showcaseLists = p.showcaseLists || {};
+  const showcaseCardsHtml = Object.entries(showcaseLists).filter(([,titles]) => titles && titles.length).map(([name, titles]) => `
+    <div class="pp-card glass">
+      <p class="pp-card-title">${escapeHtml(name)}</p>
+      <div class="pp-showcase-row">
+        ${titles.map(t => `<div class="pp-showcase-item" title="${escapeHtml(t.title)}">${t.poster ? `<img src="${t.poster}" alt="${escapeHtml(t.title)}" />` : `<div class="ph" style="width:100%;height:100%;font-size:10px;">${escapeHtml(t.title)}</div>`}</div>`).join('')}
+      </div>
+    </div>`).join('');
 
   const isOwnProfile = currentUser && p.uid === currentUser.uid;
   const followBtnHtml = isOwnProfile ? '' : `<button class="btn btn-ghost" id="ppFollowBtn" style="margin-top:14px;">Follow</button>`;
@@ -6405,7 +6686,7 @@ function openUserProfile(p){
           <div class="pp-name-row">
             ${escapeHtml(p.name || 'Unnamed')}
             ${p.verified ? `<span class="pv-verified"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>` : ''}
-            <span class="pp-rank-chip">${getRankTier(p.watchedCount)}</span>
+            <span class="pp-rank-chip${p.isAdminAccount ? ' pp-rank-chip-admin' : ''}">${getRankTier(p.watchedCount, p.isAdminAccount)}</span>
           </div>
           ${p.bio ? `<p class="pp-bio">${escapeHtml(p.bio)}</p>` : ''}
           ${joinLine}
@@ -6422,6 +6703,7 @@ function openUserProfile(p){
               <div class="pp-stat"><div class="num">${p.completionRate!=null ? p.completionRate+'%' : '—'}</div><div class="lbl">Completion Rate</div></div>
             </div>
           </div>
+          ${showcaseCardsHtml}
           ${badgesCard}
           ${socialContentHtml}
         </div>
