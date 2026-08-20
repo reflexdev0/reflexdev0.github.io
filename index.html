@@ -2770,14 +2770,26 @@ async function searchTitles(q){
 
 function showDiagnostic(){
   if(document.getElementById('diagBanner')) return;
-  mainEl.insertAdjacentHTML('afterbegin', `
-    <div id="diagBanner" style="margin:0 40px 30px; padding:18px 20px; border-radius:10px;
-      background:rgba(var(--red-rgb),0.08); border:1px solid rgba(var(--red-rgb),0.3); color:#ffb3ba; font-size:13px; line-height:1.6; font-family:monospace;">
-      <b style="color:#f5f4f4; font-family:var(--font-body);">Fetch trace (send a screenshot of this):</b><br/>
-      ${lastError || 'unknown'}<br/><br/>
-      <span style="font-family:var(--font-body);">Test the key directly:
-      <a href="https://api.themoviedb.org/3/movie/550?api_key=${TMDB_KEY}" target="_blank" style="color:var(--red-light); text-decoration:underline;">TMDB test link</a></span>
-    </div>`);
+  const isAdminViewer = currentUser && currentUser.email === ADMIN_EMAIL;
+  if(isAdminViewer){
+    // Admin-only: raw fetch trace and a direct API-key test link, so an
+    // issue can be screenshotted and reported back for debugging. This
+    // used to show to every user regardless of who they were -- a real
+    // bug, since none of this is meant for a general audience to see.
+    mainEl.insertAdjacentHTML('afterbegin', `
+      <div id="diagBanner" style="margin:0 40px 30px; padding:18px 20px; border-radius:10px;
+        background:rgba(var(--red-rgb),0.08); border:1px solid rgba(var(--red-rgb),0.3); color:#ffb3ba; font-size:13px; line-height:1.6; font-family:monospace;">
+        <b style="color:#f5f4f4; font-family:var(--font-body);">Fetch trace (send a screenshot of this):</b><br/>
+        ${lastError || 'unknown'}<br/><br/>
+        <span style="font-family:var(--font-body);">Test the key directly:
+        <a href="https://api.themoviedb.org/3/movie/550?api_key=${TMDB_KEY}" target="_blank" style="color:var(--red-light); text-decoration:underline;">TMDB test link</a></span>
+      </div>`);
+  }else{
+    mainEl.insertAdjacentHTML('afterbegin', `
+      <div id="diagBanner" class="empty-state" style="margin:0 40px 30px;">
+        ${emptyStateIconHTML()}<h3>Some content couldn't load</h3><p>Try refreshing the page in a moment.</p>
+      </div>`);
+  }
 }
 
 /* ---------------- Rendering helpers ---------------- */
