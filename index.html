@@ -3367,7 +3367,7 @@ async function hydrateRow(rowId, ids){
   const rowEl = document.getElementById(rowId);
   if(!rowEl) return;
   const valid = results.filter(Boolean);
-  if(!valid.length){ rowEl.remove(); showDiagnostic(); return; }
+  if(!valid.length){ rowEl.remove(); /* showDiagnostic(); */ return; }
   const scrollEl = rowEl.querySelector('.row-scroll');
   scrollEl.innerHTML = valid.map(cardHTML).join('');
   attachCardHandlers();
