@@ -2246,9 +2246,9 @@ const SERVERS = [
                              movie:(ids)=>`https://vidlink.pro/movie/${ids.tmdb}`,
                              tv:(ids,s,e)=>`https://vidlink.pro/tv/${ids.tmdb}/${s}/${e}`, unsandboxed:true },
   { name: 'MegaPlay (Sub)',  desc:'Anime only -- subtitled -- pick "HD-1" inside the player for best results',
-                             movie:(ids,title)=> megaPlayUrl(ids,1,1,'sub',title), tv:(ids,s,e,title)=> megaPlayUrl(ids,s,e,'sub',title), animeOnly:true, noSandbox:true },
+                             movie:(ids,title)=> megaPlayUrl(ids,1,1,'sub',title), tv:(ids,s,e,title)=> megaPlayUrl(ids,s,e,'sub',title), animeOnly:true, unsandboxed:true },
   { name: 'MegaPlay (Dub)',  desc:'Anime only -- English dub -- pick "HD-1" inside the player for best results',
-                             movie:(ids,title)=> megaPlayUrl(ids,1,1,'dub',title), tv:(ids,s,e,title)=> megaPlayUrl(ids,s,e,'dub',title), animeOnly:true, noSandbox:true },
+                             movie:(ids,title)=> megaPlayUrl(ids,1,1,'dub',title), tv:(ids,s,e,title)=> megaPlayUrl(ids,s,e,'dub',title), animeOnly:true, unsandboxed:true },
 ];
 
 /* ---------------- Curated catalogs ---------------- */
@@ -4117,11 +4117,13 @@ async function loadPlayer(){
   // tabs/redirects. allow-top-navigation-by-user-activation only permits
   // navigation as the direct result of a real click, not an automatic one.
   // Servers marked "unsandboxed" get NO sandbox attribute at all -- confirmed
-  // necessary for Videasy specifically, whose player checks for the mere
-  // presence of any sandbox restriction (not which permissions are missing)
-  // and refuses to run otherwise. This does remove the pop-up/redirect
-  // protection specifically for that server -- VidSrc.sbs and MegaPlay are
-  // unaffected either way.
+  // necessary for Videasy, whose player checks for the mere presence of any
+  // sandbox restriction (not which permissions are missing) and refuses to
+  // run otherwise. MegaPlay was moved here too after the same "sandboxed"
+  // rejection showed up in its player -- it apparently doesn't tolerate any
+  // sandbox at all either, unlike when this was first built. This removes
+  // pop-up/redirect protection for every server marked unsandboxed, not just
+  // Videasy -- currently Videasy, VidLink, and both MegaPlay variants.
   if(server.unsandboxed){
     iframe.removeAttribute('sandbox');
   }else{
