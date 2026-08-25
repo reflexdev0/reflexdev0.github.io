@@ -5593,8 +5593,9 @@ const NAV_GENRE_SET = new Set(['Action','Sci-Fi','Drama','Thriller','Crime','Com
 function buildNav(){
   const navEl = document.getElementById('navLinks');
 
-  // "Home", "My List", and "Browse" stay direct, always-visible links.
-  navEl.innerHTML = `<a href="#" data-cat="all" class="active">Home</a><a href="#" id="myListNavLink">My List</a><a href="#" id="browseAllNavLink">Browse</a>`;
+  // "Home" and "My List" stay direct, always-visible links. Browse lives in
+  // the dropdown below (a single entry point, not a separate duplicate one).
+  navEl.innerHTML = `<a href="#" data-cat="all" class="active">Home</a><a href="#" id="myListNavLink">My List</a>`;
   navEl.querySelector('[data-cat="all"]').addEventListener('click', (e)=>{
     e.preventDefault();
     openCategoryFull('all');
@@ -5605,16 +5606,10 @@ function buildNav(){
     e.target.classList.add('active');
     openMyListFull();
   });
-  navEl.querySelector('#browseAllNavLink').addEventListener('click', (e)=>{
-    e.preventDefault();
-    document.querySelectorAll('#navLinks a').forEach(a=>a.classList.remove('active'));
-    e.target.classList.add('active');
-    openBrowseAll();
-  });
 
   // Everything else lives in the enhanced Browse dropdown panel: genres as
   // chips, decades as their own quick-pick row, everything else (Star Wars,
-  // Anime, etc.) as a "More" list.
+  // Anime, etc.) as a "More" list, plus a link to the full dedicated page.
   const { genres: genreItems, decades: decadeItems, special: moreItems } = getCategorizedNavItems();
   const panel = document.getElementById('browseDropdownPanel');
   const SPECIAL_TAGS = { 'Star Wars':'SAGA', 'Anime':'LIVE', 'K-Drama':'LIVE' };
@@ -5631,6 +5626,7 @@ function buildNav(){
       ${moreItems.map(([cat,label])=>`
         <button class="nav-special-link" data-cat="${cat}">${label}${SPECIAL_TAGS[cat] ? `<span class="nav-special-tag">${SPECIAL_TAGS[cat]}</span>` : ''}</button>
       `).join('')}
+      <button class="settings-link-btn" id="browseDropdownSeeAllBtn" style="margin-top:14px; display:block;">See all as a full page →</button>
     </div>`;
   panel.querySelectorAll('[data-cat]').forEach(el=>{
     el.addEventListener('click', (e)=>{
@@ -5639,6 +5635,12 @@ function buildNav(){
       closeBrowseDropdown();
       openCategoryFull(el.dataset.cat);
     });
+  });
+  panel.querySelector('#browseDropdownSeeAllBtn').addEventListener('click', (e)=>{
+    e.preventDefault();
+    navEl.querySelectorAll('a').forEach(a=>a.classList.remove('active'));
+    closeBrowseDropdown();
+    openBrowseAll();
   });
 }
 
@@ -7526,6 +7528,7 @@ document.getElementById('bottomNav').querySelectorAll('button').forEach(btn=>{
         if(contentType !== 'movie'){ const t = document.querySelector('.type-btn[data-type="movie"]'); if(t) t.click(); }
         openCategoryFull('Anime');
       }
+      else if(action === 'browseall') openBrowseAll();
       else if(action === 'mylist') openMyListFull();
       else if(action === 'surprise') surpriseMe();
       else if(action === 'social') openSocialFull();
@@ -7965,6 +7968,10 @@ document.getElementById('gateRequestBtn').onclick = async ()=>{
     <button class="drawer-item" data-drawer-action="anime">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2.5 9.5h19"/><path d="M2.5 13.5h19"/><rect x="9" y="9" width="6" height="4.5" rx="0.8"/><path d="M4 13.5l3 6.5M6.5 13.5l2.5 6.5" stroke-linecap="round"/></svg>
       Anime
+    </button>
+    <button class="drawer-item" data-drawer-action="browseall">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      Browse
     </button>
     <button class="drawer-item" data-drawer-action="mylist">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 000-7.8z"/></svg>
