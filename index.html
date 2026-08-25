@@ -375,6 +375,7 @@
     .browse-all-grid{ grid-template-columns:repeat(auto-fill, minmax(120px,1fr)); }
     .browse-all-tile{ padding:16px 14px; font-size:13.5px; }
   }
+  .tile-enter{ opacity:0; animation:cardFadeIn .4s ease both; }
   .marquee-board{
     display:flex; flex-wrap:wrap; gap:10px; padding:20px; border-radius:16px;
     background:#08080a; border:1px solid var(--glass-border);
@@ -7068,12 +7069,24 @@ function openBrowseAll(){
   document.querySelectorAll('#navLinks a').forEach(a=>a.classList.remove('active'));
   const { genres, decades, special } = getCategorizedNavItems();
   const SPECIAL_TAGS = { 'Star Wars':'Saga', 'Anime':'Live', 'K-Drama':'Live' };
+  // Shared across every section below so the whole page cascades in as one
+  // continuous reveal (genres, then decades, then more) rather than three
+  // separate simultaneous cascades that would each restart from zero. Capped
+  // so a page with many tiles finishes reasonably quickly rather than the
+  // last tile waiting an ever-growing delay.
+  let staggerIndex = 0;
+  const STAGGER_STEP_MS = 25, STAGGER_MAX_MS = 400;
+  function nextStaggerDelay(){
+    const delay = Math.min(staggerIndex * STAGGER_STEP_MS, STAGGER_MAX_MS);
+    staggerIndex++;
+    return delay;
+  }
   const section = (title, list) => !list.length ? '' : `
     <div class="browse-all-section">
       <p class="browse-all-section-title">${title}</p>
       <div class="browse-all-grid">
         ${list.map(([cat,label])=>`
-          <button class="browse-all-tile" data-cat="${cat}">${label}${SPECIAL_TAGS[cat] ? `<span class="tag">${SPECIAL_TAGS[cat]}</span>` : ''}</button>`).join('')}
+          <button class="browse-all-tile tile-enter" style="animation-delay:${nextStaggerDelay()}ms;" data-cat="${cat}">${label}${SPECIAL_TAGS[cat] ? `<span class="tag">${SPECIAL_TAGS[cat]}</span>` : ''}</button>`).join('')}
       </div>
     </div>`;
   // Genres get their own dedicated marquee-board treatment -- a darker
@@ -7083,7 +7096,7 @@ function openBrowseAll(){
     <div class="browse-all-section">
       <p class="browse-all-section-title">Genres</p>
       <div class="marquee-board">
-        ${genres.map(([cat,label])=>`<button class="marquee-tile" data-cat="${cat}">${label}</button>`).join('')}
+        ${genres.map(([cat,label])=>`<button class="marquee-tile tile-enter" style="animation-delay:${nextStaggerDelay()}ms;" data-cat="${cat}">${label}</button>`).join('')}
       </div>
     </div>`;
   mainEl.innerHTML = `
