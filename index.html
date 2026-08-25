@@ -197,6 +197,15 @@
     .ww-profile-name{ font-size:12px; }
   }
 
+  #pageLoadBar{
+    position:fixed; top:0; left:0; height:2.5px; width:0%; z-index:500;
+    background:linear-gradient(90deg, var(--red), var(--red-light));
+    box-shadow:0 0 8px rgba(var(--red-rgb),0.6);
+    opacity:0; transition:width .35s ease, opacity .2s ease;
+    pointer-events:none;
+  }
+  #pageLoadBar.active{ opacity:1; }
+  #pageLoadBar.done{ width:100%; opacity:0; transition:width .2s ease, opacity .4s ease .15s; }
   .pull-refresh-indicator{
     position:fixed; top:70px; left:50%; transform:translateX(-50%) translateY(-40px) scale(0.7) rotate(0deg);
     width:34px; height:34px; border-radius:50%; background:rgba(20,20,22,0.9); border:1px solid var(--line);
@@ -981,6 +990,10 @@
   .hero-genres{ display:flex; gap:8px; margin-bottom:22px; flex-wrap:wrap; }
   .hero-genre-pill{ font-size:11px; font-weight:600; padding:5px 12px; border-radius:100px; color:var(--muted); }
   .hero-actions{display:flex; gap:12px;}
+  .hero-tap-hint{ display:none; font-size:11px; color:var(--muted); margin:14px 0 0; }
+  .hero-dots{ display:none; gap:6px; margin-top:10px; }
+  .hero-dot{ width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.25); transition:all .2s; }
+  .hero-dot.active{ background:var(--red-light); width:16px; border-radius:3px; }
 
   /* ---------- Film strip selector (replaces hero dots) ---------- */
   .filmstrip-wrap{ padding:0 40px 30px; margin-top:-14px; position:relative; z-index:3; }
@@ -1168,6 +1181,8 @@
     border-left:4px solid var(--red); padding-left:12px;
   }
   .row-title .count{font-family:var(--font-body); font-size:11.5px; color:var(--muted); font-weight:600;}
+  .row-title-sprockets{ display:flex; gap:3px; margin-left:2px; }
+  .row-title-sprockets span{ width:5px; height:5px; border-radius:1.5px; background:var(--red-light); box-shadow:0 0 4px rgba(var(--red-rgb),0.7); }
   .new-ep-badge{
     font-family:var(--font-body); font-size:10.5px; font-weight:700; color:#fff;
     background:var(--red); padding:2px 9px; border-radius:100px; margin-left:8px; vertical-align:middle;
@@ -1641,9 +1656,18 @@
     .hero-poster{display:none;}
     .hero-text{max-width:none;}
     .hero-eyebrow{font-size:10px; padding:3px 8px; margin-bottom:6px;}
-    .hero-title{font-size:clamp(28px, 8.5vw, 40px); margin-bottom:6px;}
-    .hero-meta{font-size:11.5px; gap:8px; margin-bottom:6px;}
-    .hero-plot{font-size:12.5px; line-height:1.4; margin-bottom:12px; -webkit-line-clamp:1;}
+    .hero-title{font-size:clamp(28px, 8.5vw, 40px); margin-bottom:6px; cursor:pointer;}
+    /* Streamlined mobile hero: title + one action only. The film strip
+       below used to carry featured-title browsing on its own -- now the
+       hero itself is swipeable (see the touch handler on #hero), with dots
+       replacing the strip as the position indicator, so there's no longer a
+       second carousel stacked immediately under the hero on small screens. */
+    .hero-badge-row, .hero-meta, .hero-plot, .hero-genres, #heroTrailer, #heroInfo{ display:none !important; }
+    .hero-tap-hint{ display:block; text-align:center; }
+    .hero-dots{ display:flex; justify-content:center; }
+    .hero-actions{ justify-content:center; }
+    .hero-text{ text-align:center; }
+    .filmstrip-wrap{ display:none !important; } /* !important is deliberate here: renderFilmStrip() sets this element's display via inline style in JS, which a plain media-query rule can't override -- this is the correct tool for that specific case, unlike a static inline attribute left in markup */
     .hero-actions{gap:8px;}
     .hero-actions .btn{padding:9px 14px; font-size:12.5px;}
     .theater-toolbar{ justify-content:center; gap:8px 10px; padding:14px 16px; }
@@ -1718,7 +1742,7 @@
     <button class="nav-dropdown-btn" id="browseDropdownBtn">Browse <span>&#9662;</span></button>
     <div class="nav-dropdown-panel" id="browseDropdownPanel"></div>
   </div>
-  <button class="see-all-btn mobile-browse-trigger" id="mobileBrowseTrigger" style="display:none;">Browse <span style="font-size:10px;">&#9662;</span></button>
+  <button class="see-all-btn mobile-browse-trigger" id="mobileBrowseTrigger">Browse <span style="font-size:10px;">&#9662;</span></button>
   <button class="header-search-btn" id="headerSearchBtn" title="Search" aria-label="Search">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
   </button>
@@ -2004,6 +2028,8 @@
         <button class="btn btn-ghost" id="heroTrailer" style="display:none;">🎬 Trailer</button>
         <button class="btn btn-ghost" id="heroInfo">More info</button>
       </div>
+      <p class="hero-tap-hint">Tap title for details · swipe for more</p>
+      <div class="hero-dots" id="heroDots"></div>
     </div>
   </div>
 </section>
@@ -2076,6 +2102,7 @@
     </div>
   </div>
 </div>
+<div id="pageLoadBar"></div>
 <div id="pullRefreshIndicator" class="pull-refresh-indicator">↓</div>
 <main id="main"></main>
 
@@ -3494,6 +3521,37 @@ function showHero(){
   if(heroFrameData.length) document.getElementById('filmstripWrap').style.display = '';
 }
 
+// Top progress bar for real, in-flight fetches (category browsing, search) --
+// creeps forward while the fetch is still pending since the actual duration
+// isn't known upfront, then completes for real once results are in. Not
+// used anywhere nothing is actually being fetched (e.g. the Browse page,
+// which is instant local data).
+let pageLoadTimer = null;
+function startPageLoad(){
+  const bar = document.getElementById('pageLoadBar');
+  if(!bar) return;
+  clearInterval(pageLoadTimer);
+  bar.classList.remove('done');
+  bar.style.transition = 'none';
+  bar.style.width = '0%';
+  void bar.offsetWidth; // restart
+  bar.style.transition = '';
+  bar.classList.add('active');
+  requestAnimationFrame(()=>{ bar.style.width = '30%'; });
+  let progress = 30;
+  pageLoadTimer = setInterval(()=>{
+    progress += (88 - progress) * 0.12; // creeps toward 88%, never reaches it on its own -- finishPageLoad completes the rest for real
+    bar.style.width = progress.toFixed(1) + '%';
+  }, 350);
+}
+function finishPageLoad(){
+  const bar = document.getElementById('pageLoadBar');
+  if(!bar) return;
+  clearInterval(pageLoadTimer);
+  bar.classList.add('done');
+  setTimeout(()=>{ bar.classList.remove('active','done'); bar.style.width = '0%'; }, 500);
+}
+
 // Shared by nav links and each row's "See All" button: shows every title in
 // that category as a full wrapping grid instead of a single sliding row.
 function openCategoryFull(cat){
@@ -3504,6 +3562,7 @@ function openCategoryFull(cat){
   document.getElementById('searchInput').value = '';
   document.querySelectorAll('#navLinks a').forEach(a=>a.classList.toggle('active', a.dataset.cat === cat));
   if(cat === 'all'){ renderHome(); return; }
+  startPageLoad();
   const ids = activeCatalog()[cat] || [];
   const genreId = TMDB_GENRE_IDS[contentType] && TMDB_GENRE_IDS[contentType][cat];
   const discoverQuery = genreId ? `with_genres=${genreId}` : (TMDB_DISCOVER_QUERY[contentType] && TMDB_DISCOVER_QUERY[contentType][cat]);
@@ -3548,11 +3607,12 @@ function openCategoryFull(cat){
       const grid = document.getElementById('fullCatGrid');
       const countEl = document.getElementById('fullCatCount');
       if(countEl) countEl.textContent = valid.length;
-      if(!valid.length){ grid.parentElement.innerHTML = `<div class="empty-state">${emptyStateIconHTML(2)}<h3>Nothing found</h3></div>`; return; }
+      if(!valid.length){ finishPageLoad(); grid.parentElement.innerHTML = `<div class="empty-state">${emptyStateIconHTML(2)}<h3>Nothing found</h3></div>`; return; }
       grid.innerHTML = valid.map(cardHTML).join('');
+      finishPageLoad();
       attachCardHandlers();
       document.getElementById('loadMoreStatus').textContent = "That's the whole saga.";
-    }).catch(()=>{});
+    }).catch(()=>{ finishPageLoad(); });
     return;
   }
 
@@ -3561,8 +3621,9 @@ function openCategoryFull(cat){
     const valid = results.filter(Boolean);
     fullCatItems = valid;
     const grid = document.getElementById('fullCatGrid');
-    if(!valid.length && !discoverQuery && !mergedQueries){ grid.parentElement.innerHTML = `<div class="empty-state">${emptyStateIconHTML(2)}<h3>Nothing found</h3></div>`; return; }
+    if(!valid.length && !discoverQuery && !mergedQueries){ finishPageLoad(); grid.parentElement.innerHTML = `<div class="empty-state">${emptyStateIconHTML(2)}<h3>Nothing found</h3></div>`; return; }
     grid.innerHTML = valid.map(cardHTML).join('');
+    finishPageLoad();
     attachCardHandlers();
     if(mergedQueries){
       catState = { mergedQueries, pages: mergedQueries.map(()=>1), queryIndex: 0, seenIds: new Set(valid.map(v=>v.imdbID)), kind: contentType === 'series' ? 'tv' : 'movie', generation: myGeneration };
@@ -3588,6 +3649,11 @@ function openCategoryFull(cat){
       }
       if(myGeneration === renderGeneration) armLoadMoreObserver();
     }
+  }).catch(()=>{
+    if(myGeneration !== renderGeneration) return;
+    finishPageLoad();
+    const grid = document.getElementById('fullCatGrid');
+    if(grid) grid.parentElement.innerHTML = `<div class="empty-state">${emptyStateIconHTML(2)}<h3>Couldn't load this category</h3><p>Try again in a moment.</p></div>`;
   });
 }
 
@@ -4383,6 +4449,44 @@ async function startHeroCarousel(){
     }, 7000);
   }
 }
+
+// Streamlined mobile hero: swiping browses featured titles directly (the
+// film strip that used to carry this is hidden on mobile), and tapping the
+// title opens the same info the desktop "More Info" button would -- that
+// button is hidden on mobile too, since there's no room for three actions.
+(function(){
+  const heroEl = document.getElementById('hero');
+  if(!heroEl) return;
+  let heroTouchStartX = null;
+  heroEl.addEventListener('touchstart', (e)=>{
+    if(window.innerWidth > 640) return;
+    heroTouchStartX = e.touches[0].clientX;
+  }, { passive:true });
+  heroEl.addEventListener('touchend', (e)=>{
+    if(heroTouchStartX === null || window.innerWidth > 640 || !heroIds.length) return;
+    if(heroTouchStartX < 30){ heroTouchStartX = null; return; } // leave the drawer's own edge-swipe-to-open zone alone
+    const dx = e.changedTouches[0].clientX - heroTouchStartX;
+    heroTouchStartX = null;
+    if(Math.abs(dx) < 40) return; // too small to count as an intentional swipe
+    heroIndex = dx < 0
+      ? (heroIndex + 1) % heroIds.length
+      : (heroIndex - 1 + heroIds.length) % heroIds.length;
+    setHero(heroIds[heroIndex]);
+    renderFilmStrip(); // also updates dots
+    if(heroTimer) clearInterval(heroTimer);
+    heroTimer = setInterval(()=>{
+      heroIndex = (heroIndex + 1) % heroIds.length;
+      setHero(heroIds[heroIndex]);
+      renderFilmStrip();
+    }, 7000);
+  }, { passive:true });
+  document.getElementById('heroTitle').addEventListener('click', ()=>{
+    if(window.innerWidth > 640) return;
+    const infoBtn = document.getElementById('heroInfo');
+    if(infoBtn) infoBtn.click();
+  });
+})();
+
 async function loadFilmStripData(){
   const results = await mapQueued(heroIds, async id => {
     const m = await fetchById(id);
@@ -4390,7 +4494,34 @@ async function loadFilmStripData(){
   });
   heroFrameData = results.filter(Boolean);
 }
+// Mobile-only position indicator for the hero's swipeable featured rotation --
+// mirrors the film strip's active-frame/click-to-jump behavior, just as
+// plain dots instead of poster frames. Safe to call even when the film
+// strip itself is hidden (desktop dots stay empty/invisible via CSS).
+function renderHeroDots(){
+  const dotsEl = document.getElementById('heroDots');
+  if(!dotsEl) return;
+  if(!heroFrameData.length){ dotsEl.innerHTML = ''; return; }
+  dotsEl.innerHTML = heroFrameData.map((f,i) =>
+    `<span class="hero-dot ${f.id===heroIds[heroIndex]?'active':''}" data-i="${i}"></span>`).join('');
+  dotsEl.querySelectorAll('.hero-dot').forEach(dot=>{
+    dot.onclick = ()=>{
+      const i = Number(dot.dataset.i);
+      const clickedId = heroFrameData[i].id;
+      heroIndex = heroIds.indexOf(clickedId);
+      setHero(clickedId);
+      renderFilmStrip(); // also re-renders dots, and the (hidden-on-mobile) strip for anyone who resizes
+      if(heroTimer) clearInterval(heroTimer);
+      heroTimer = setInterval(()=>{
+        heroIndex = (heroIndex + 1) % heroIds.length;
+        setHero(heroIds[heroIndex]);
+        renderFilmStrip();
+      }, 7000);
+    };
+  });
+}
 function renderFilmStrip(){
+  renderHeroDots();
   const wrap = document.getElementById('filmstripWrap');
   const track = document.getElementById('filmstripTrack');
   if(!heroFrameData.length){ wrap.style.display = 'none'; return; }
@@ -5492,7 +5623,7 @@ async function refreshContinueWatchingRow(){
   if(!valid.length){ document.querySelectorAll('#row_Jump_Back_In').forEach(el=>el.remove()); return; }
   const html = `
     <div class="row" id="row_Jump_Back_In">
-      <div class="row-head"><div class="row-title">Jump Back In <span class="count">${valid.length}</span></div></div>
+      <div class="row-head"><div class="row-title">Jump Back In <span class="row-title-sprockets" aria-hidden="true"><span></span><span></span><span></span><span></span></span> <span class="count">${valid.length}</span></div></div>
       <div class="row-slider">
         <button class="slide-arrow left" aria-label="Scroll left">‹</button>
         <div class="row-scroll">${valid.map(m => {
@@ -7913,7 +8044,7 @@ document.getElementById('gateRequestBtn').onclick = async ()=>{
   </button>
 </div>
 
-<nav class="bottom-nav" id="bottomNav" style="display:none;">
+<nav class="bottom-nav" id="bottomNav">
   <button class="active" data-action="home" title="Home" aria-label="Home">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
   </button>
