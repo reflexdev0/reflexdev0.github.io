@@ -3145,6 +3145,18 @@ function showDiagnostic(){
 /* ---------------- Rendering helpers ---------------- */
 function poster(url){ return (url && url !== 'N/A') ? url : null; }
 
+// Shared fallback for any card poster image that fails to load -- reads the
+// title from the DOM's own .alt property (already safely unescaped by the
+// browser) rather than rebuilding a JS string per-card, which was fragile
+// against titles containing characters that could break inline string
+// interpolation.
+function handleCardImgError(imgEl){
+  const ph = document.createElement('div');
+  ph.className = 'ph';
+  ph.innerText = imgEl.alt || '';
+  imgEl.replaceWith(ph);
+}
+
 // Renders a rating (out of 10) as a 5-star visual, rounded to the nearest
 // half star. Used wherever a rating shows up -- cards, hero, theater --
 // instead of a bare "★ 7.6" text pairing.
@@ -3183,7 +3195,7 @@ function cardHTML(m, opts){
   opts = opts || {};
   const p = poster(m.Poster);
   const img = p
-    ? `<img src="${p}" alt="${m.Title}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'ph',innerText:'${m.Title.replace(/'/g,"\\'")}'}))" />`
+    ? `<img src="${p}" alt="${m.Title.replace(/"/g,'&quot;')}" loading="lazy" onerror="handleCardImgError(this)" />`
     : `<div class="ph">${m.Title}</div>`;
   const plotSnippet = (m.Plot && m.Plot !== 'N/A') ? m.Plot : '';
   const inList = myList.has(m.imdbID);
@@ -3796,7 +3808,6 @@ async function renderHome(){
   if(liveRowsOn){
     renderTrendingRow();
     renderNewReleasesRow();
-    renderComingSoonRow();
   }
   const kidsMode = !!getCurrentProfile().kidsMode;
   const catalog = activeCatalog();
@@ -3917,18 +3928,6 @@ async function renderTrendingRow(){
 async function renderNewReleasesRow(){
   if(contentType === 'series') return;
   await renderLiveRow('row_New_Releases', 'New Releases (live)', '/movie/now_playing', 'movie');
-}
-// Coming Soon -- upcoming releases not out yet, using TMDB's own dedicated
-// endpoint for movies and a date-filtered discover query for series (TMDB
-// has no "upcoming" endpoint for TV, so first-air-date >= today with a
-// popularity sort approximates the same idea).
-async function renderComingSoonRow(){
-  if(contentType === 'series'){
-    const today = new Date().toISOString().slice(0,10);
-    await renderLiveRow('row_Coming_Soon', 'Coming Soon (live)', `/discover/tv?first_air_date.gte=${today}&sort_by=popularity.desc`, 'series');
-  }else{
-    await renderLiveRow('row_Coming_Soon', 'Coming Soon (live)', '/movie/upcoming', 'movie');
-  }
 }
 // Anime auto-discovery (genre=Animation + origin=Japan) was removed: TMDB's
 // adult-content flag only covers actual pornography, not ecchi/fan-service
@@ -5317,7 +5316,7 @@ async function openTheater(id, fromPopstate){
 
   const p = poster(m.Poster);
   document.getElementById('tPoster').innerHTML = p
-    ? `<img src="${p}" alt="${m.Title}" onerror="this.parentElement.innerHTML='<div class=ph>${m.Title.replace(/'/g,"&#39;")}</div>'" />`
+    ? `<img src="${p}" alt="${m.Title.replace(/"/g,'&quot;')}" onerror="handleCardImgError(this)" />`
     : `<div class="ph">${m.Title}</div>`;
 
   document.getElementById('tTitle').textContent = m.Title;
