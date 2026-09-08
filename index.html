@@ -1862,6 +1862,7 @@
           <span>Full-page title view<span class="settings-hint" style="display:block; margin-top:3px;">Title details fill the screen instead of floating as a card</span></span>
           <input type="checkbox" id="fullPageTheaterToggle" />
         </label>
+        <button class="settings-link-btn" id="settingsShortcutsBtn" style="margin-top:18px; display:block;">Keyboard shortcuts →</button>
       </div>
 
       <div class="side-menu-panel" data-panel="account">
@@ -2025,7 +2026,6 @@
       <button class="type-pill active" id="mobileBrowseTypeMovie">Movies</button>
       <button class="type-pill" id="mobileBrowseTypeSeries">Series</button>
     </div>
-    <button class="settings-link-btn" id="mobileBrowseSeeAllBtn" style="margin-bottom:18px; display:block;">See all as a full page →</button>
     <div id="mobileBrowseSections"></div>
   </div>
 </aside>
@@ -2208,7 +2208,7 @@
   <div id="subtitleResults"></div>
 </div>
 <button id="backToTop" class="back-to-top" aria-label="Back to top">↑</button>
-<footer class="site-footer">©reflexdev &nbsp;·&nbsp; <button id="footerShortcutsBtn" style="background:none; border:none; color:inherit; font:inherit; letter-spacing:inherit; cursor:pointer; text-decoration:underline; padding:0;">Keyboard shortcuts</button></footer>
+<footer class="site-footer">©reflexdev</footer>
 <div class="trailer-modal" id="trailerModal">
   <button class="theater-close" id="trailerClose" aria-label="Close trailer">✕</button>
   <div class="trailer-frame" id="trailerFrame"></div>
@@ -4481,17 +4481,25 @@ let heroFrameData = []; // cached {id, title, year, poster} for each featured ti
 // Rotates through the Featured list with dot indicators, auto-advancing and
 // tap-to-jump, so the hero shows more than one title without extra taps.
 async function startHeroCarousel(){
-  heroIds = activeCatalog().Featured || [];
+  // Pull from the whole catalog, not just the curated Featured list -- a
+  // shuffled 28-title pool still looks like "the same movies" after a few
+  // visits, just reordered. Sampling from everything gives real variety.
+  const catalog = activeCatalog();
+  const kidsMode = !!getCurrentProfile().kidsMode;
+  const allIds = Array.from(new Set(
+    Object.entries(catalog)
+      .filter(([cat]) => !(kidsMode && KIDS_HIDDEN_CATEGORIES.includes(cat)))
+      .flatMap(([,ids]) => ids)
+  ));
+  heroIds = [...allIds].sort(()=> Math.random() - 0.5).slice(0, 20);
   try{
     const snap = await getDoc(doc(db, 'adminConfig', 'featured'));
     if(snap.exists() && snap.data().ids && snap.data().ids.length){
-      heroIds = snap.data().ids;
+      // Admin override is explicitly curated -- takes priority, and still
+      // gets its own shuffle rather than always starting from the same spot.
+      heroIds = [...snap.data().ids].sort(()=> Math.random() - 0.5);
     }
-  }catch(e){ /* fall back to local curated Featured list */ }
-  // Shuffle (not just pick a random starting point into the same fixed
-  // order) so the rotation itself varies across visits, rather than always
-  // stepping through the same sequence from wherever it happened to start.
-  heroIds = [...heroIds].sort(()=> Math.random() - 0.5);
+  }catch(e){ /* fall back to the catalog-wide sample above */ }
   heroIndex = 0;
   setHero(heroIds[heroIndex]);
   await loadFilmStripData();
@@ -5637,7 +5645,7 @@ function closeShortcutsPanel(){
 document.getElementById('shortcutsOverlay').onclick = closeShortcutsPanel;
 document.getElementById('surpriseOverlay').onclick = ()=>{ if(activeSurpriseSkip) activeSurpriseSkip(); };
 document.getElementById('shortcutsCloseBtn').onclick = closeShortcutsPanel;
-document.getElementById('footerShortcutsBtn').onclick = openShortcutsPanel;
+document.getElementById('settingsShortcutsBtn').onclick = openShortcutsPanel;
 
 
 // My List no longer appears as a row on the homepage (Movies/Series/Anime
@@ -5817,7 +5825,6 @@ function buildNav(){
       ${moreItems.map(([cat,label])=>`
         <button class="nav-special-link" data-cat="${cat}">${label}${SPECIAL_TAGS[cat] ? `<span class="nav-special-tag">${SPECIAL_TAGS[cat]}</span>` : ''}</button>
       `).join('')}
-      <button class="settings-link-btn" id="browseDropdownSeeAllBtn" style="margin-top:14px; display:block;">See all as a full page →</button>
     </div>`;
   panel.querySelectorAll('[data-cat]').forEach(el=>{
     el.addEventListener('click', (e)=>{
@@ -5826,12 +5833,6 @@ function buildNav(){
       closeBrowseDropdown();
       openCategoryFull(el.dataset.cat);
     });
-  });
-  panel.querySelector('#browseDropdownSeeAllBtn').addEventListener('click', (e)=>{
-    e.preventDefault();
-    navEl.querySelectorAll('a').forEach(a=>a.classList.remove('active'));
-    closeBrowseDropdown();
-    openBrowseAll();
   });
 }
 
@@ -5860,7 +5861,6 @@ function closeMobileBrowse(){
 }
 document.getElementById('mobileBrowseTrigger').onclick = openMobileBrowse;
 document.getElementById('mobileBrowseClose').onclick = closeMobileBrowse;
-document.getElementById('mobileBrowseSeeAllBtn').onclick = ()=>{ closeMobileBrowse(); openBrowseAll(); };
 document.getElementById('mobileBrowseDragHandle').onclick = closeMobileBrowse;
 mobileBrowseOverlay.onclick = closeMobileBrowse;
 
@@ -8021,6 +8021,23 @@ function showGateError(msg, isSuccess){
   el.style.color = isSuccess ? 'var(--text)' : 'var(--red-light)';
 }
 
+// Disables a button and swaps in loading text for the duration of an async
+// action, always restoring it afterward (success or failure). Prevents
+// double-submitting these auth actions if someone taps more than once while
+// a request is still in flight -- overlapping calls with the same
+// credentials is exactly the kind of thing that can make a button feel like
+// it "needs a few tries" to work.
+function withButtonLoading(btn, loadingText, fn){
+  return async (...args)=>{
+    if(btn.disabled) return;
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = loadingText;
+    try{ await fn(...args); }
+    finally{ btn.disabled = false; btn.textContent = originalText; }
+  };
+}
+
 document.getElementById('gateShowRequestBtn').onclick = ()=>{
   showGateError('');
   document.getElementById('gateLoginView').style.display = 'none';
@@ -8034,7 +8051,8 @@ document.getElementById('gateShowLoginBtn').onclick = ()=>{
   document.getElementById('gateHeading').textContent = 'Welcome back';
 };
 
-document.getElementById('gateLoginBtn').onclick = async ()=>{
+const gateLoginBtnEl = document.getElementById('gateLoginBtn');
+gateLoginBtnEl.onclick = withButtonLoading(gateLoginBtnEl, 'Logging in…', async ()=>{
   showGateError('');
   const email = document.getElementById('gateEmail').value.trim();
   const password = document.getElementById('gatePassword').value;
@@ -8045,9 +8063,10 @@ document.getElementById('gateLoginBtn').onclick = async ()=>{
     await signInWithEmailAndPassword(auth, email, password);
   }
   catch(e){ showGateError(e.message.replace('Firebase: ','')); }
-};
+});
 
-document.getElementById('gateForgotPwBtn').onclick = async ()=>{
+const gateForgotPwBtnEl = document.getElementById('gateForgotPwBtn');
+gateForgotPwBtnEl.onclick = withButtonLoading(gateForgotPwBtnEl, 'Sending…', async ()=>{
   showGateError('');
   const email = document.getElementById('gateEmail').value.trim();
   if(!email){ showGateError('Type your email above first, then tap Forgot password.'); return; }
@@ -8055,15 +8074,17 @@ document.getElementById('gateForgotPwBtn').onclick = async ()=>{
     await sendPasswordResetEmail(auth, email);
     showGateError('Password reset email sent to ' + email + ' -- check your inbox.', true);
   }catch(e){ showGateError(e.message.replace('Firebase: ','')); }
-};
+});
 
-document.getElementById('gateGoogleBtn').onclick = async ()=>{
+const gateGoogleBtnEl = document.getElementById('gateGoogleBtn');
+gateGoogleBtnEl.onclick = withButtonLoading(gateGoogleBtnEl, 'Connecting…', async ()=>{
   showGateError('');
   try{
     const result = await signInWithPopup(auth, new GoogleAuthProvider());
     const isNewUser = result._tokenResponse && result._tokenResponse.isNewUser;
     if(isNewUser){
       // Brand new Google account -- treat exactly like a request, not instant access.
+      await result.user.getIdToken(true); // see the comment on the email/password path above -- same timing gap, same fix
       await setDoc(doc(db,'users',result.user.uid), {
         approved:false, email:result.user.email, displayName: result.user.displayName || '', requestedAt:Date.now(), myListIds:[], watching:{}
       });
@@ -8081,16 +8102,26 @@ document.getElementById('gateGoogleBtn').onclick = async ()=>{
       showGateError(e.message.replace('Firebase: ',''));
     }
   }
-};
+});
 
-document.getElementById('gateRequestBtn').onclick = async ()=>{
+const gateRequestBtnEl = document.getElementById('gateRequestBtn');
+gateRequestBtnEl.onclick = withButtonLoading(gateRequestBtnEl, 'Requesting…', async ()=>{
   showGateError('');
   const displayName = document.getElementById('gateReqName').value.trim();
   const email = document.getElementById('gateReqEmail').value.trim();
   const password = document.getElementById('gateReqPassword').value;
   if(!email || !password){ showGateError('Enter an email and password.'); return; }
+  let result;
   try{
-    const result = await createUserWithEmailAndPassword(auth, email, password);
+    result = await createUserWithEmailAndPassword(auth, email, password);
+    // Force the ID token to refresh before the very next Firestore write --
+    // immediately after account creation, the new auth state can take a
+    // moment to fully propagate, and a write that fires before that settles
+    // can intermittently fail its permission check even though the code and
+    // rules are both correct. This closes that gap.
+    await result.user.getIdToken(true);
+  }catch(e){ showGateError(e.message.replace('Firebase: ','')); return; }
+  try{
     await setDoc(doc(db,'users',result.user.uid), {
       approved:false, email, displayName: displayName || '', requestedAt:Date.now(), myListIds:[], watching:{}
     });
@@ -8100,8 +8131,13 @@ document.getElementById('gateRequestBtn').onclick = async ()=>{
     document.getElementById('gateLoginView').style.display = 'block';
     document.getElementById('gateRequestView').style.display = 'none';
     showAccessGate();
-  }catch(e){ showGateError(e.message.replace('Firebase: ','')); }
-};
+  }catch(e){
+    // The auth account now exists even though this save failed -- surface
+    // that clearly rather than leaving a silent, half-created account with
+    // no explanation of what to do next.
+    showGateError('Account created, but saving your request failed: ' + e.message.replace('Firebase: ','') + '. Please contact the admin directly rather than trying again.');
+  }
+});
 
 </script>
 <div class="snap-zone" id="zoneTop"></div>
