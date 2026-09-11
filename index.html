@@ -1717,8 +1717,6 @@
 <link rel="dns-prefetch" href="https://player.videasy.to">
 <link rel="preconnect" href="https://vidlink.pro">
 <link rel="dns-prefetch" href="https://vidlink.pro">
-<link rel="preconnect" href="https://anikoto.to">
-<link rel="dns-prefetch" href="https://anikoto.to">
 </head>
 <body>
 
@@ -2277,8 +2275,8 @@
         <div class="theater-meta" id="tMeta"></div>
         <p class="theater-plot" id="tPlot"></p>
         <div class="theater-cast" id="tCast"></div>
-        <div class="provider-note">
-  Videasy works for everything -- start there. VidLink is a good alternate if Videasy is slow or stuttering. AniKoto (Sub)/(Dub) is anime-only -- try it if Videasy's audio or subtitles aren't right for a particular anime. Picture quality varies by title and server, so switch if one looks soft.
+       <div class="provider-note">
+  Videasy works for everything -- start there. VidLink is a good alternate if Videasy is slow or stuttering. Picture quality varies by title and server, so switch if one looks soft.
 </div>
       </div>
     </div>
@@ -2547,18 +2545,6 @@ async function resolveAnilistId(title, season){
   setAnilistCacheEntry(cacheKey, id);
   return id;
 }
-
-// AniKoto uses AniList IDs directly (same system MegaPlay used) -- reuses
-// the existing ANILIST_MAP/resolveAnilistId lookup. Sub/dub is passed as a
-// URL segment; AniKoto handles the actual source fallback on its end.
-async function aniKotoUrl(ids, season, episode, mode, title){
-  const entry = ANILIST_MAP[ids.imdb];
-  let anilistId = entry && entry[season];
-  if(!anilistId && title) anilistId = await resolveAnilistId(title, season);
-  if(!anilistId) return null;
-  return `https://anikoto.to/watch/${anilistId}/${episode}/${mode}`;
-}
-
 const SERVERS = [
   { name: 'Videasy',         desc:'Works for everything -- start here',
                              movie:(ids)=>`https://player.videasy.to/movie/${ids.tmdb}`,
@@ -2566,10 +2552,6 @@ const SERVERS = [
   { name: 'VidLink',         desc:'Alternate source -- try if Videasy is slow or stuttering',
                              movie:(ids)=>`https://vidlink.pro/movie/${ids.tmdb}`,
                              tv:(ids,s,e)=>`https://vidlink.pro/tv/${ids.tmdb}/${s}/${e}`, unsandboxed:true },
-  { name: 'AniKoto (Sub)',  desc:'Anime only -- subtitled -- auto-selects the best available server',
-                             movie:(ids,title)=> aniKotoUrl(ids,1,1,'sub',title), tv:(ids,s,e,title)=> aniKotoUrl(ids,s,e,'sub',title), animeOnly:true, unsandboxed:true },
-  { name: 'AniKoto (Dub)', desc:'Anime only -- English dub -- auto-selects the best available server',
-                             movie:(ids,title)=> aniKotoUrl(ids,1,1,'dub',title), tv:(ids,s,e,title)=> aniKotoUrl(ids,s,e,'dub',title), animeOnly:true, unsandboxed:true },
   { name: 'VidCore', desc: 'TMDB/IMDb embeds, adaptive streaming, subtitles, 4K, fallback',
     movie: (ids) => `https://vidcore.org/embed/movie/${ids.tmdb}`,
     tv: (ids, s, e) => `https://vidcore.org/embed/tv/${ids.tmdb}/${s}/${e}`,
