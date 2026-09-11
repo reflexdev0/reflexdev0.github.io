@@ -1717,8 +1717,8 @@
 <link rel="dns-prefetch" href="https://player.videasy.to">
 <link rel="preconnect" href="https://vidlink.pro">
 <link rel="dns-prefetch" href="https://vidlink.pro">
-<link rel="preconnect" href="https://megaplay.buzz">
-<link rel="dns-prefetch" href="https://megaplay.buzz">
+<link rel="preconnect" href="https://anikoto.to">
+<link rel="dns-prefetch" href="https://anikoto.to">
 </head>
 <body>
 
@@ -2278,8 +2278,8 @@
         <p class="theater-plot" id="tPlot"></p>
         <div class="theater-cast" id="tCast"></div>
         <div class="provider-note">
-          Videasy works for everything -- start there. VidLink is a good alternate if Videasy is slow or stuttering. MegaPlay (Sub)/(Dub) is anime-only -- try it if Videasy's audio or subtitles aren't right for a particular anime, and once it loads, pick "HD-1" from the player's own server list for the most reliable playback. Picture quality varies by title and server, so switch if one looks soft.
-        </div>
+  Videasy works for everything -- start there. VidLink is a good alternate if Videasy is slow or stuttering. AniKoto (Sub)/(Dub) is anime-only -- try it if Videasy's audio or subtitles aren't right for a particular anime. Picture quality varies by title and server, so switch if one looks soft.
+</div>
       </div>
     </div>
     <div class="row" id="recsRow" style="display:none;">
@@ -2566,10 +2566,10 @@ const SERVERS = [
   { name: 'VidLink',         desc:'Alternate source -- try if Videasy is slow or stuttering',
                              movie:(ids)=>`https://vidlink.pro/movie/${ids.tmdb}`,
                              tv:(ids,s,e)=>`https://vidlink.pro/tv/${ids.tmdb}/${s}/${e}`, unsandboxed:true },
-  { name: 'MegaPlay (Sub)',  desc:'Anime only -- subtitled -- pick "HD-1" inside the player for best results',
-                             movie:(ids,title)=> megaPlayUrl(ids,1,1,'sub',title), tv:(ids,s,e,title)=> megaPlayUrl(ids,s,e,'sub',title), animeOnly:true, unsandboxed:true },
-  { name: 'MegaPlay (Dub)',  desc:'Anime only -- English dub -- pick "HD-1" inside the player for best results',
-                             movie:(ids,title)=> megaPlayUrl(ids,1,1,'dub',title), tv:(ids,s,e,title)=> megaPlayUrl(ids,s,e,'dub',title), animeOnly:true, unsandboxed:true },
+  { name: 'AniKoto (Sub)',  desc:'Anime only -- subtitled -- auto-selects the best available server',
+                             movie:(ids,title)=> aniKotoUrl(ids,1,1,'sub',title), tv:(ids,s,e,title)=> aniKotoUrl(ids,s,e,'sub',title), animeOnly:true, unsandboxed:true },
+  { name: 'AniKoto (Dub)', desc:'Anime only -- English dub -- auto-selects the best available server',
+                             movie:(ids,title)=> aniKotoUrl(ids,1,1,'dub',title), tv:(ids,s,e,title)=> aniKotoUrl(ids,s,e,'dub',title), animeOnly:true, unsandboxed:true },
   { name: 'VidCore', desc: 'TMDB/IMDb embeds, adaptive streaming, subtitles, 4K, fallback',
     movie: (ids) => `https://vidcore.org/embed/movie/${ids.tmdb}`,
     tv: (ids, s, e) => `https://vidcore.org/embed/tv/${ids.tmdb}/${s}/${e}`,
@@ -4787,7 +4787,7 @@ async function loadPlayer(isFailoverRetry){
   if(currentIsSeries && !server.tv){ showPlayerMessage("This server doesn't support TV/anime -- pick another."); return; }
   if(!currentIsSeries && !server.movie){ showPlayerMessage("This server is anime/TV only -- pick another for movies."); return; }
 
-  // MegaPlay's src builder is async now (it may need to look up AniList
+  // Anitoko's src builder is async now (it may need to look up AniList
   // live) -- await handles that fine, and also still works unchanged for
   // Videasy's builder, which just returns a plain string, not a promise.
   const src = await (currentIsSeries
@@ -4823,11 +4823,11 @@ async function loadPlayer(isFailoverRetry){
   // Servers marked "unsandboxed" get NO sandbox attribute at all -- confirmed
   // necessary for Videasy, whose player checks for the mere presence of any
   // sandbox restriction (not which permissions are missing) and refuses to
-  // run otherwise. MegaPlay was moved here too after the same "sandboxed"
+  // run otherwise. Anitoko was moved here too after the same "sandboxed"
   // rejection showed up in its player -- it apparently doesn't tolerate any
   // sandbox at all either, unlike when this was first built. This removes
   // pop-up/redirect protection for every server marked unsandboxed, not just
-  // Videasy -- currently Videasy, VidLink, and both MegaPlay variants.
+  // Videasy -- currently Videasy, VidLink, and both Anitoko variants.
   if(server.unsandboxed){
     iframe.removeAttribute('sandbox');
   }else{
