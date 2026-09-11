@@ -2548,15 +2548,15 @@ async function resolveAnilistId(title, season){
   return id;
 }
 
-// MegaPlay's documented format is /stream/ani/{anilistId}/{episode}/{sub|dub}
-// (uses the Anikoto catalog behind the scenes) -- reuses the same
-// ANILIST_MAP/resolveAnilistId lookup used elsewhere.
-async function megaPlayUrl(ids, season, episode, mode, title){
+// AniKoto uses AniList IDs directly (same system MegaPlay used) -- reuses
+// the existing ANILIST_MAP/resolveAnilistId lookup. Sub/dub is passed as a
+// URL segment; AniKoto handles the actual source fallback on its end.
+async function aniKotoUrl(ids, season, episode, mode, title){
   const entry = ANILIST_MAP[ids.imdb];
   let anilistId = entry && entry[season];
   if(!anilistId && title) anilistId = await resolveAnilistId(title, season);
   if(!anilistId) return null;
-  return `https://megaplay.buzz/stream/ani/${anilistId}/${episode}/${mode}`;
+  return `https://anikoto.to/watch/${anilistId}/${episode}/${mode}`;
 }
 
 const SERVERS = [
@@ -5324,16 +5324,16 @@ async function openTheater(id, fromPopstate){
   document.getElementById('playIntro').style.backgroundImage = introBg ? `url(${introBg})` : 'linear-gradient(160deg,#241a1c,#0a0a0b)';
   document.getElementById('playIntroBtn').onclick = startPlayback;
 
-  // Anime-only servers (MegaPlay) show for anything in the hardcoded map
+   // Anime-only servers (AniKoto) show for anything in the hardcoded map
   // (fast, pre-verified) OR anything that looks like anime by genre +
-  // original language -- the dynamic AniList lookup in megaPlayUrl handles
+  // original language -- the dynamic AniList lookup in aniKotoUrl handles
   // actually finding a match for titles in that second group.
   // Catches anime via either signal, since each covers the other's gap:
   // Japanese origin catches shows TMDB's community tagged with genres other
   // than Animation (Attack on Titan, etc. -- dark/mature anime often gets
   // tagged Action/Drama instead). Animation genre catches the opposite case
   // -- something correctly tagged as animation whose language field happens
-  // to be wrong or missing in TMDB's data. Showing MegaPlay unnecessarily
+  // to be wrong or missing in TMDB's data. Showing AniKoto unnecessarily
   // for the rare non-anime title in either group just means it gracefully
   // finds no AniList match, a much smaller cost than hiding it for real anime.
   // getVisibleServersForCurrentTitle reads cache[currentMovieId], which is
