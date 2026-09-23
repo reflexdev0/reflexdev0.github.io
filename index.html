@@ -2496,20 +2496,27 @@ function mapQueued(items, fn, priority){
   return Promise.all(items.map(item => runQueued(()=> fn(item), priority)));
 }
 const SERVERS = [
-  { name: 'VidLink', desc: 'Reliable alternate source with a good catalog',
-    movie: (ids) => `https://vidlink.pro/movie/${ids.tmdb}`,
-    tv: (ids, s, e) => `https://vidlink.pro/tv/${ids.tmdb}/${s}/${e}`, unsandboxed: true },
-  { name: 'Videasy', desc: 'Works for everything -- start here',
-    movie: (ids) => `https://player.videasy.to/movie/${ids.tmdb}`,
-    tv: (ids, s, e) => `https://player.videasy.to/tv/${ids.tmdb}/${s}/${e}`, unsandboxed: true },
-  { name: 'VidBolt', desc: 'TMDB movie/TV embeds + anime routes, autoplay, subtitles, player customization',
+  { name: 'VidBolt', desc: 'TMDB movie/TV embeds + anime routes, autoplay, subtitles',
     movie: (ids) => `https://vidbolt.pro/embed/movie/${ids.tmdb}`,
-    tv: (ids, s, e) => `https://vidbolt.pro/embed/tv/${ids.tmdb}/${s}/${e}`,
-    unsandboxed: true },
+    tv: (ids, s, e) => `https://vidbolt.pro/embed/tv/${ids.tmdb}/${s}/${e}`, unsandboxed: true },
   { name: 'CineSrc', desc: 'Straightforward TMDB-based movie and TV iframe endpoints',
     movie: (ids) => `https://cinesrc.st/embed/movie/${ids.tmdb}`,
-    tv: (ids, s, e) => `https://cinesrc.st/embed/tv/${ids.tmdb}/${s}/${e}`,
-    unsandboxed: true },
+    tv: (ids, s, e) => `https://cinesrc.st/embed/tv/${ids.tmdb}/${s}/${e}`, unsandboxed: true },
+  { name: 'SuperEmbed', desc: 'Highly stable provider with multi-source support',
+    movie: (ids) => `https://multiembed.mov/directstream.php?video_id=${ids.tmdb}&tmdb=1`,
+    tv: (ids, s, e) => `https://multiembed.mov/directstream.php?video_id=${ids.tmdb}&tmdb=1&s=${s}&e=${e}`, unsandboxed: true },
+  { name: 'SmashyStream', desc: 'Fast, reliable, and actively maintained',
+    movie: (ids) => `https://embed.smashystream.com/playere.php?tmdb=${ids.tmdb}`,
+    tv: (ids, s, e) => `https://embed.smashystream.com/playere.php?tmdb=${ids.tmdb}&season=${s}&episode=${e}`, unsandboxed: true },
+  { name: 'VixSrc', desc: 'Smooth playback, VixCloud sub-brand',
+    movie: (ids) => `https://vixsrc.to/embed/movie/${ids.tmdb}`,
+    tv: (ids, s, e) => `https://vixsrc.to/embed/tv/${ids.tmdb}/${s}/${e}`, unsandboxed: true },
+  { name: '4KHDHub', desc: 'Highest quality 4K/Remux content',
+    movie: (ids) => `https://4khdhub.com/embed/movie/${ids.tmdb}`,
+    tv: (ids, s, e) => `https://4khdhub.com/embed/tv/${ids.tmdb}/${s}/${e}`, unsandboxed: true },
+  { name: 'MoviesAPI', desc: 'Multi-source provider with good coverage',
+    movie: (ids) => `https://moviesapi.club/movie/${ids.tmdb}`,
+    tv: (ids, s, e) => `https://moviesapi.club/tv/${ids.tmdb}-${s}-${e}`, unsandboxed: true },
 ];
 
 /* ---------------- Curated catalogs ---------------- */
