@@ -1713,10 +1713,10 @@
      even opened, shaving some setup time (DNS lookup, handshake) off the
      start of loading. This can't speed up their actual video delivery once
      playing -- that depends on their own servers, not anything here. -->
-<link rel="preconnect" href="https://player.videasy.to">
-<link rel="dns-prefetch" href="https://player.videasy.to">
-<link rel="preconnect" href="https://vidlink.pro">
-<link rel="dns-prefetch" href="https://vidlink.pro">
+<link rel="preconnect" href="https://vidfast.pro">
+<link rel="dns-prefetch" href="https://vidfast.pro">
+<link rel="preconnect" href="https://www.2embed.skin">
+<link rel="dns-prefetch" href="https://www.2embed.skin">
 </head>
 <body>
 
@@ -2275,8 +2275,8 @@
         <div class="theater-meta" id="tMeta"></div>
         <p class="theater-plot" id="tPlot"></p>
         <div class="theater-cast" id="tCast"></div>
-       <div class="provider-note">
-  Videasy works for everything -- start there. VidLink is a good alternate if Videasy is slow or stuttering. Picture quality varies by title and server, so switch if one looks soft.
+      <div class="provider-note">
+  VidFast works for everything -- start there. 2Embed is a good alternate if VidFast is slow or stuttering. Picture quality varies by title and server, so switch if one looks soft.
 </div>
       </div>
     </div>
@@ -2495,63 +2495,13 @@ function pumpQueue(){
 function mapQueued(items, fn, priority){
   return Promise.all(items.map(item => runQueued(()=> fn(item), priority)));
 }
-
-/* ---------------- Servers (movie + tv url builders) ---------------- */
-// MegaPlay is anime-specific and uses AniList IDs (a different database than
-// IMDb/TMDB), keyed per-season since AniList gives each season its own id.
-const ANILIST_MAP = {
-  'tt12343534': { 1: 113415, 2: 145064, 3: 172463 }, // Jujutsu Kaisen (seasons 1-3)
-  'tt13711094': { 1: 131573 }, // Jujutsu Kaisen 0 (movie)
-  'tt5720044': { 1: 21507 }, // Mob Psycho 100
-};
-// Caches AniList lookups so the same title/season isn't re-queried every
-// time -- persisted so it survives reloads, same pattern as TMDB metadata.
-function getAnilistCache(){ return storage.get('reflextv_anilist_cache', {}); }
-function setAnilistCacheEntry(key, value){
-  const c = getAnilistCache();
-  c[key] = value;
-  storage.set('reflextv_anilist_cache', c);
-}
-
-// Dynamic AniList lookup for any anime not in the hardcoded map above --
-// searches by title via AniList's own public GraphQL API, which does its
-// own fuzzy matching, so an exact string match isn't required on our end.
-// Season 1 (or anything with no season concept, like a movie) searches the
-// plain title; season 2+ appends "Season N" first, since that's how AniList
-// commonly titles sequel entries, falling back to the plain title if that
-// specific search comes up empty.
-async function resolveAnilistId(title, season){
-  const cacheKey = `${title}::${season}`;
-  const cache = getAnilistCache();
-  if(cache[cacheKey] !== undefined) return cache[cacheKey]; // null is a valid cached "no match found" result too
-
-  const query = `query($search:String){ Media(search:$search, type:ANIME) { id } }`;
-  async function search(searchTerm){
-    try{
-      const res = await fetchWithTimeout('https://graphql.anilist.co', 6000, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ query, variables: { search: searchTerm } })
-      });
-      if(!res.ok) return null;
-      const data = await res.json();
-      return (data.data && data.data.Media && data.data.Media.id) || null;
-    }catch(e){ return null; }
-  }
-
-  let id = null;
-  if(season > 1) id = await search(`${title} Season ${season}`);
-  if(!id) id = await search(title);
-  setAnilistCacheEntry(cacheKey, id);
-  return id;
-}
 const SERVERS = [
-  { name: 'Videasy',         desc:'Works for everything -- start here',
-                             movie:(ids)=>`https://player.videasy.to/movie/${ids.tmdb}`,
-                             tv:(ids,s,e)=>`https://player.videasy.to/tv/${ids.tmdb}/${s}/${e}`, unsandboxed:true },
-  { name: 'VidLink',         desc:'Alternate source -- try if Videasy is slow or stuttering',
-                             movie:(ids)=>`https://vidlink.pro/movie/${ids.tmdb}`,
-                             tv:(ids,s,e)=>`https://vidlink.pro/tv/${ids.tmdb}/${s}/${e}`, unsandboxed:true },
+  { name: 'VidFast', desc: 'High-quality embeds with subtitle support',
+    movie: (ids) => `https://vidfast.pro/movie/${ids.tmdb}`,
+    tv: (ids, s, e) => `https://vidfast.pro/tv/${ids.tmdb}/${s}/${e}`, unsandboxed: true },
+  { name: '2Embed', desc: 'Reliable TMDB-based embed provider',
+    movie: (ids) => `https://www.2embed.skin/embed/${ids.tmdb}`,
+    tv: (ids, s, e) => `https://www.2embed.skin/embedtv/${ids.tmdb}/${s}/${e}`, unsandboxed: true },
   { name: 'VidCore', desc: 'TMDB/IMDb embeds, adaptive streaming, subtitles, 4K, fallback',
     movie: (ids) => `https://vidcore.org/embed/movie/${ids.tmdb}`,
     tv: (ids, s, e) => `https://vidcore.org/embed/tv/${ids.tmdb}/${s}/${e}`,
@@ -2567,10 +2517,6 @@ const SERVERS = [
   { name: 'YapGrid', desc: 'TMDB movie/TV embeds with autoplay, language, and external subtitle params',
     movie: (ids) => `https://yapgrid.com/embed/movie/${ids.tmdb}`,
     tv: (ids, s, e) => `https://yapgrid.com/embed/tv/${ids.tmdb}/${s}/${e}`,
-    unsandboxed: true },
-  { name: 'VidSrc', desc: 'Reliable TMDB/IMDb embeds with good uptime',
-    movie: (ids) => `https://vidsrc.to/embed/movie/${ids.tmdb}`,
-    tv: (ids, s, e) => `https://vidsrc.to/embed/tv/${ids.tmdb}/${s}/${e}`,
     unsandboxed: true },
 ];
 
@@ -4252,7 +4198,7 @@ function showConfirm(message){
 // searched directly within REFLEXtv rather than needing to visit an external
 // site. Downloading still has to open the file in a new tab (a real browser
 // limitation, not something we can silently automate around), and still
-// needs to be manually loaded into Videasy's own "Upload subtitles" option,
+// needs to be manually loaded into the player's own "Upload subtitles" option,
 // same as a file found anywhere else -- this only makes finding it easier.
 let subtitleSearchContext = null;
 function openSubtitleSearch(m, season, episode){
@@ -4707,10 +4653,9 @@ function showPlayerMessage(text, opts){
 // auto-failover logic below can also determine which server to fall back
 // to, without duplicating the anime-detection logic.
 function getVisibleServersForCurrentTitle(){
-  const m = cache[currentMovieId];
-  if(!m) return SERVERS.map((s,i)=>({s,i}));
-  const isAnime = !!ANILIST_MAP[currentMovieId] || m.OriginalLanguage === 'ja' || m.Genre.includes('Animation');
-  return SERVERS.map((s,i)=>({s,i})).filter(({s}) => !s.animeOnly || isAnime);
+  // No anime-only servers currently exist -- all servers in SERVERS apply
+  // to every title, so this just returns them all.
+  return SERVERS.map((s,i)=>({s,i}));
 }
 
 // Server reliability tracking (#10 from the QOL list) -- purely local, per-
@@ -4769,9 +4714,9 @@ async function loadPlayer(isFailoverRetry){
   if(currentIsSeries && !server.tv){ showPlayerMessage("This server doesn't support TV/anime -- pick another."); return; }
   if(!currentIsSeries && !server.movie){ showPlayerMessage("This server is anime/TV only -- pick another for movies."); return; }
 
-  // Anitoko's src builder is async now (it may need to look up AniList
-  // live) -- await handles that fine, and also still works unchanged for
-  // Videasy's builder, which just returns a plain string, not a promise.
+   // Server src builders may be async (a future one might need a lookup);
+  // await handles both sync and async builders fine, since awaiting a plain
+  // string just resolves to itself.
   const src = await (currentIsSeries
     ? server.tv(ids, Number(seasonSelect.value)||1, Number(episodeInput.value)||1, title)
     : server.movie(ids, title));
@@ -4794,22 +4739,11 @@ async function loadPlayer(isFailoverRetry){
   // embed's "missing embed session" error) that appear to validate the
   // referring page URL -- this matches normal browser default behavior instead.
   iframe.referrerPolicy = 'no-referrer-when-downgrade';
-  // Sandboxed to block the exact behavior malicious ad networks use to hijack
-  // the page: pop-ups, new tabs, and automatic top-level redirects (this is
-  // what was causing unwanted tabs/ad content to open). Servers marked
-  // noSandbox get a wider set of permissions since their player needed extra
-  // ones to run -- still deliberately excluding allow-popups and unrestricted
-  // allow-top-navigation, since those two are what actually enable ad-hijack
-  // tabs/redirects. allow-top-navigation-by-user-activation only permits
-  // navigation as the direct result of a real click, not an automatic one.
-  // Servers marked "unsandboxed" get NO sandbox attribute at all -- confirmed
-  // necessary for Videasy, whose player checks for the mere presence of any
-  // sandbox restriction (not which permissions are missing) and refuses to
-  // run otherwise. Anitoko was moved here too after the same "sandboxed"
-  // rejection showed up in its player -- it apparently doesn't tolerate any
-  // sandbox at all either, unlike when this was first built. This removes
-  // pop-up/redirect protection for every server marked unsandboxed, not just
-  // Videasy -- currently Videasy, VidLink, and both Anitoko variants.
+    // Servers marked "unsandboxed" get NO sandbox attribute at all -- most
+  // embedded players check for the mere presence of any sandbox restriction
+  // and refuse to run otherwise. This removes pop-up/redirect protection
+  // for those servers, so only mark a server unsandboxed if it genuinely
+  // needs it.
   if(server.unsandboxed){
     iframe.removeAttribute('sandbox');
   }else{
